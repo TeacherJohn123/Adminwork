@@ -16,7 +16,7 @@
     </header>
 
     <section class="bg-white rounded-xl shadow-sm p-6">
-      <h2 class="text-lg font-bold text-slate-700 mb-4">📝 新增/編輯案件</h2>
+      <h2 class="text-lg font-bold text-slate-700 mb-4">📝 新增/編輯案件 (支援標籤複選)</h2>
       
       <!-- 日期與燈號設定 -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
@@ -34,7 +34,7 @@
         </div>
       </div>
 
-      <!-- 標籤平鋪選擇區 (取代下拉選單) -->
+      <!-- 標籤複選區 -->
       <div class="space-y-6 mb-6">
         <tag-selector label="討論形式" v-model="form.format" :options="tags.formats" @add="addTag('formats', $event)" @remove="removeTag('formats', $event)" @edit="editTag('formats', $event)"></tag-selector>
         <tag-selector label="會議名稱" v-model="form.meetingName" :options="tags.meetingNames" @add="addTag('meetingNames', $event)" @remove="removeTag('meetingNames', $event)" @edit="editTag('meetingNames', $event)"></tag-selector>
@@ -80,7 +80,7 @@
   <script>
     const { createApp, ref, onMounted } = Vue;
 
-    // --- 全新平鋪式標籤選擇與編輯元件 ---
+    // --- 支援複選的標籤選擇與編輯元件 ---
     const TagSelector = {
       props: ['label', 'modelValue', 'options'],
       emits: ['update:modelValue', 'add', 'remove', 'edit'],
@@ -88,7 +88,7 @@
         <div class="border-b border-slate-100 pb-4">
           <div class="flex items-center justify-between mb-2">
             <label class="block text-sm font-bold text-slate-700">
-              {{ label }}：<span class="text-blue-600 ml-1">{{ modelValue || '尚未選擇' }}</span>
+              {{ label }}：<span class="text-blue-600 ml-1">{{ displaySelected }}</span>
             </label>
             <button @click="isEditing = !isEditing" class="text-xs px-3 py-1 rounded-full transition" :class="isEditing ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'">
               {{ isEditing ? '✅ 完成編輯' : '✏️ 編輯標籤' }}
@@ -97,7 +97,7 @@
           <div class="flex flex-wrap gap-2 items-center">
             <button v-for="opt in options" :key="opt" @click="selectTag(opt)" 
               class="px-4 py-1.5 rounded-full text-sm font-medium transition shadow-sm border"
-              :class="modelValue === opt ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400 hover:bg-blue-50'">
+              :class="modelValue && modelValue.includes(opt) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400 hover:bg-blue-50'">
               {{ opt }}
               <span v-if="isEditing" @click.stop="promptEdit(opt)" class="ml-2 text-blue-400 hover:text-blue-200 cursor-pointer text-xs">✏️</span>
               <span v-if="isEditing" @click.stop="promptRemove(opt)" class="ml-1 text-red-400 hover:text-red-200 cursor-pointer text-xs">❌</span>
@@ -108,12 +108,23 @@
           </div>
         </div>
       `,
+      computed: {
+        displaySelected() {
+          return (this.modelValue && this.modelValue.length > 0) ? this.modelValue.join('、') : '尚未選擇';
+        }
+      },
       setup(props, { emit }) {
         const isEditing = ref(false);
 
         const selectTag = (opt) => {
           if (!isEditing.value) {
-            emit('update:modelValue', props.modelValue === opt ? '' : opt); // 點擊第二次可取消選取
+            let currentSelected = Array.isArray(props.modelValue) ? [...props.modelValue] : [];
+            if (currentSelected.includes(opt)) {
+              currentSelected = currentSelected.filter(item => item !== opt); // 已存在則移除
+            } else {
+              currentSelected.push(opt); // 不存在則加入
+            }
+            emit('update:modelValue', currentSelected);
           }
         };
         const promptAdd = () => { 
@@ -127,7 +138,10 @@
         const promptRemove = (val) => { 
           if(confirm(`確定要刪除 [${val}] 標籤嗎？`)) {
             emit('remove', val);
-            if(props.modelValue === val) emit('update:modelValue', ''); // 若刪除的是目前選取的，則清空
+            let currentSelected = Array.isArray(props.modelValue) ? [...props.modelValue] : [];
+            if(currentSelected.includes(val)) {
+               emit('update:modelValue', currentSelected.filter(item => item !== val));
+            }
           }
         };
 
@@ -142,15 +156,26 @@
           <div class="flex-1">
             <div class="flex flex-wrap items-center gap-2 mb-2">
               <span class="text-xs font-medium bg-slate-100 text-slate-600 px-2 py-1 rounded">{{ record.date.substring(0,10) }}</span>
-              <span v-if="record.format" class="text-xs font-medium bg-indigo-50 text-indigo-600 px-2 py-1 rounded">{{ record.format }}</span>
-              <span v-if="record.meetingName" class="text-xs font-medium bg-blue-50 text-blue-600 px-2 py-1 rounded">{{ record.meetingName }}</span>
-              <span v-if="record.status" class="text-xs font-medium bg-slate-800 text-white px-2 py-1 rounded">{{ record.status }}</span>
+              <!-- 將字串以逗號拆分渲染出多個標籤 -->
+              <template v-if="record.format">
+                <span v-for="f in record.format.split(',')" class="text-xs font-medium bg-indigo-50 text-indigo-600 px-2 py-1 rounded">{{ f.trim() }}</span>
+              </template>
+              <template v-if="record.meetingName">
+                <span v-for="m in record.meetingName.split(',')" class="text-xs font-medium bg-blue-50 text-blue-600 px-2 py-1 rounded">{{ m.trim() }}</span>
+              </template>
+              <template v-if="record.status">
+                 <span v-for="s in record.status.split(',')" class="text-xs font-medium bg-slate-800 text-white px-2 py-1 rounded">{{ s.trim() }}</span>
+              </template>
             </div>
             <p class="font-bold text-slate-800 whitespace-pre-wrap">{{ record.subject }}</p>
             <div v-if="record.summary" class="mt-3 p-3 bg-slate-50 text-xs text-slate-600 rounded-lg border border-slate-200 whitespace-pre-wrap"><strong>AI 摘要：</strong>\n{{ record.summary }}</div>
           </div>
           <div class="flex flex-col items-end justify-between min-w-[120px]">
-            <span class="text-sm font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-300">👤 {{ record.organizer || '未指定' }}</span>
+            <template v-if="record.organizer">
+               <span v-for="o in record.organizer.split(',')" class="text-sm font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-300 mb-1">👤 {{ o.trim() }}</span>
+            </template>
+            <span v-else class="text-sm font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-300 mb-1">👤 未指定</span>
+            
             <a v-if="record.fileUrl" :href="record.fileUrl" target="_blank" class="text-xs text-blue-500 hover:underline mt-2">📄 檢視附件</a>
           </div>
         </div>
@@ -186,7 +211,19 @@
         };
         const saveTags = () => localStorage.setItem('adminSysTags', JSON.stringify(tags.value));
 
-        const form = ref({ date: new Date().toISOString().split('T')[0], format: '', meetingName: '', organizer: '', status: '', light: 'yellow', subject: '', fileUrl: '', summary: '' });
+        // 將預設標籤資料格式改為「陣列」
+        const form = ref({ 
+          date: new Date().toISOString().split('T')[0], 
+          format: [], 
+          meetingName: [], 
+          organizer: [], 
+          status: [], 
+          light: 'yellow', 
+          subject: '', 
+          fileUrl: '', 
+          summary: '' 
+        });
+        
         const records = ref([]);
         const isUploading = ref(false);
 
@@ -239,8 +276,21 @@
         const saveRecord = async () => {
           if(!form.value.subject) return alert('請填寫主旨！');
           try {
-            await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ action: 'saveRecord', ...form.value }) });
+            // 將陣列在存檔前轉換為逗號分隔的字串
+            const payload = {
+              action: 'saveRecord',
+              ...form.value,
+              format: form.value.format.join(','),
+              meetingName: form.value.meetingName.join(','),
+              organizer: form.value.organizer.join(','),
+              status: form.value.status.join(',')
+            };
+            
+            await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify(payload) });
+            
+            // 儲存後清空表單，包含將陣列重置
             form.value.subject = ''; form.value.fileUrl = ''; form.value.summary = '';
+            form.value.format = []; form.value.meetingName = []; form.value.organizer = []; form.value.status = [];
             loadRecords();
           } catch(e) { alert('儲存失敗'); }
         };
