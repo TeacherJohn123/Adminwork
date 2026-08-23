@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>行政工作追蹤檢核與 AI 助理系統</title>
+  <!-- 載入 Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- 載入 Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+  <div id="app" class="max-w-6xl mx-auto space-y-6">
+    
+    <!-- 頂部標題列 -->
+    <header class="bg-white rounded-lg shadow p-6 flex justify-between items-center">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-800">🏫 國小行政工作追蹤與 AI 檢核系統</h1>
+        <p class="text-sm text-gray-500 mt-1">結合會議管理、提案追蹤與 Gemini 智慧行政助理</p>
+      </div>
+      <button @click="fetchMeetings" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm transition">
+        🔄 重新整理資料
+      </button>
+    </header>
+
+    <!-- 核心功能區：左右雙欄 (左：會議與提案管理，右：Gemini AI 助理) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- 左側 (佔 2 欄)：會議列表與新增 -->
+      <div class="lg:col-span-2 space-y-6">
+        
+        <!-- 新增會議表單 -->
+        <section class="bg-white rounded-lg shadow p-6">
+          <h2 class="text-lg font-semibold text-gray-700 mb-4">➕ 建立新會議</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input v-model="newMeeting.title" type="text" placeholder="會議名稱 (例: 期初校務會議)" class="border p-2 rounded focus:ring-blue-500 focus:border-blue-500">
+            <input v-model="newMeeting.date" type="date" class="border p-2 rounded">
+            <input v-model="newMeeting.noticeUrl" type="text" placeholder="開會通知單雲端連結 (選填)" class="border p-2 rounded">
+            <input v-model="newMeeting.members" type="text" placeholder="參加委員 (逗號分隔)" class="border p-2 rounded">
+          </div>
+          <button @click="createMeeting" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition text-sm">
+            儲存會議
+          </button>
+        </section>
+
+        <!-- 會議清單 -->
+        <section class="bg-white rounded-lg shadow p-6">
+          <h2 class="text-lg font-semibold text-gray-700 mb-4">📋 會議總覽</h2>
+          <div v-if="meetings.length === 0" class="text-gray-400 text-sm py-4 text-center">目前沒有會議資料，請先建立上方會議。</div>
+          <div class="space-y-3">
+            <div v-for="m in meetings" :key="m.id" 
+                 @click="selectMeeting(m)"
+                 :class="['p-4 rounded-lg border cursor-pointer transition', selectedMeeting && selectedMeeting.id === m.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50']">
+              <div class="flex justify-between items-center">
+                <span class="font-bold text-gray-800">{{ m.title }}</span>
+                <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">{{ m.date }}</span>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">委員：{{ m.members || '無' }}</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 選中會議的提案清單與新增 -->
+        <section v-if="selectedMeeting" class="bg-white rounded-lg shadow p-6">
+          <h2 class="text-lg font-semibold text-gray-700 mb-4">📑 提案管理：{{ selectedMeeting.title }}</h2>
+          
+          <!-- 新增提案 -->
+          <div class="bg-gray-50 p-4 rounded-lg mb-6 space-y-3 border">
+            <h3 class="text-sm font-bold text-gray-600">新增提案</h3>
+            <input v-model="newProposal.subject" type="text" placeholder="案由 (例: 討論本學期行事曆草案)" class="w-full border p-2 rounded text-sm bg-white">
+            <textarea v-model="newProposal.description" placeholder="說明..." class="w-full border p-2 rounded text-sm bg-white h-20"></textarea>
+            <input v-model="newProposal.proposal" type="text" placeholder="擬辦..." class="w-full border p-2 rounded text-sm bg-white">
+            <button @click="createProposal" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm transition">
+              新增提案
+            </button>
+          </div>
+
+          <!-- 提案列表 -->
+          <div class="space-y-4">
+            <div v-for="p in proposals" :key="p.proposalId" class="border p-4 rounded-lg bg-white shadow-sm space-y-2">
+              <div class="flex justify-between items-center">
+                <span class="font-bold text-blue-800 text-sm">案由：{{ p.subject }}</span>
+                <span class="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded">{{ p.status }}</span>
+              </div>
+              <p class="text-xs text-gray-600"><strong>說明：</strong>{{ p.description }}</p>
+              <p class="text-xs text-gray-600"><strong>擬辦：</strong>{{ p.proposal }}</p>
+              
+              <!-- 快捷按鈕：把這個提案送給右側 AI 助理處理 -->
+              <div class="pt-2 flex space-x-2">
+                <button @click="sendToAI('refine', p.description)" class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded hover:bg-indigo-100 transition">
+                  🖋️ 潤飾這段說明
+                </button>
+                <button @click="sendToAI('law', p.subject + ' ' + p.description)" class="text-xs bg-purple-50 text-purple-600 px-3 py-1 rounded hover:bg-purple-100 transition">
+                  📚 教育法規檢核
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- 右側 (佔 1 欄)：Gemini AI 智慧助理面板 -->
+      <div class="space-y-6">
+        <section class="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-lg shadow p-6 sticky top-6">
+          <h2 class="text-lg font-bold mb-2 flex items-center space-x-2">
+            <span>🤖 Gemini 行政助理</span>
+          </h2>
+          <p class="text-xs text-slate-300 mb-4">點選左側提案的快捷按鈕，或將文字貼入下方直接讓 AI 協助。</p>
+
+          <div class="space-y-3 mb-4">
+            <button @click="callAI('refine')" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 px-3 rounded transition text-left flex justify-between items-center">
+              <span>🖋️ 公文文字潤飾</span>
+              <span class="text-xs bg-blue-500 px-1.5 py-0.5 rounded">公文氣口</span>
+            </button>
+            <button @click="callAI('law')" class="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm py-2 px-3 rounded transition text-left flex justify-between items-center">
+              <span>📚 教育法規建議</span>
+              <span class="text-xs bg-purple-500 px-1.5 py-0.5 rounded">適法性</span>
+            </button>
+            <button @click="callAI('rule')" class="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm py-2 px-3 rounded transition text-left flex justify-between items-center">
+              <span>⚖️ 議事規則建議</span>
+              <span class="text-xs bg-orange-500 px-1.5 py-0.5 rounded">會議規範</span>
+            </button>
+          </div>
+
+          <div class="space-y-2">
+            <label class="text-xs text-slate-300 block">AI 輸入/輸出工作區：</label>
+            <textarea v-model="aiInputText" placeholder="點選左側按鈕會自動帶入，或在此手動輸入文字..." class="w-full h-40 bg-slate-900 border border-slate-700 text-sm p-3 rounded text-white focus:ring-2 focus:ring-blue-500"></textarea>
+            
+            <div v-if="isAiLoading" class="text-xs text-blue-400 animate-pulse text-center py-2">
+              ✨ Gemini 正在思考中...
+            </div>
+          </div>
+        </section>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        // !!! 請將這裡換成你剛剛複製的 GAS 網址 (結尾為 /exec) !!!
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxhygLRfVmToYROKGhMagpUABpA3u-TpX3rSjSDUmwJaj-xl2f8OX5Mv8SoHbrJA2IF/exec';
+
+        const meetings = ref([]);
+        const proposals = ref([]);
+        const selectedMeeting = ref(null);
+
+        const newMeeting = ref({ title: '', date: '', noticeUrl: '', members: '' });
+        const newProposal = ref({ subject: '', description: '', proposal: '' });
+
+        const aiInputText = ref('');
+        const isAiLoading = ref(false);
+
+        // 1. 取得會議列表
+        const fetchMeetings = async () => {
+          try {
+            const res = await fetch(`${GAS_API_URL}?action=getMeetings`);
+            const json = await res.json();
+            if (json.status === 'success') {
+              meetings.value = json.data;
+            }
+          } catch (e) {
+            console.error("讀取會議失敗", e);
+          }
+        };
+
+        // 2. 建立新會議
+        const createMeeting = async () => {
+          if (!newMeeting.value.title) return alert('請輸入會議名稱');
+          try {
+            const res = await fetch(GAS_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: 'addMeeting', ...newMeeting.value })
+            });
+            const json = await res.json();
+            if (json.status === 'success') {
+              newMeeting.value = { title: '', date: '', noticeUrl: '', members: '' };
+              fetchMeetings();
+            }
+          } catch (e) {
+            alert('新增會議失敗');
+          }
+        };
+
+        // 3. 選擇會議並載入其提案
+        const selectMeeting = async (meeting) => {
+          selectedMeeting.value = meeting;
+          try {
+            const res = await fetch(`${GAS_API_URL}?action=getProposals&meetingId=${meeting.id}`);
+            const json = await res.json();
+            if (json.status === 'success') {
+              proposals.value = json.data;
+            }
+          } catch (e) {
+            console.error("讀取提案失敗", e);
+          }
+        };
+
+        // 4. 新增提案
+        const createProposal = async () => {
+          if (!newProposal.value.subject || !selectedMeeting.value) return alert('請選擇會議並輸入案由');
+          try {
+            const res = await fetch(GAS_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ 
+                action: 'addProposal', 
+                meetingId: selectedMeeting.value.id, 
+                ...newProposal.value 
+              })
+            });
+            const json = await res.json();
+            if (json.status === 'success') {
+              newProposal.value = { subject: '', description: '', proposal: '' };
+              selectMeeting(selectedMeeting.value); // 重新載入提案
+            }
+          } catch (e) {
+            alert('新增提案失敗');
+          }
+        };
+
+        // 5. 快速帶入文字到 AI 助理區
+        const sendToAI = (type, text) => {
+          aiInputText.value = text;
+          callAI(type);
+        };
+
+        // 6. 呼叫 Gemini AI
+        const callAI = async (type) => {
+          if (!aiInputText.value) return alert('請先輸入或帶入需要 AI 協助的文字');
+          isAiLoading.value = true;
+          try {
+            const res = await fetch(GAS_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: 'callGemini', aiType: type, text: aiInputText.value })
+            });
+            const json = await res.json();
+            if (json.status === 'success') {
+              aiInputText.value = json.result;
+            } else {
+              alert('AI 呼叫失敗');
+            }
+          } catch (e) {
+            alert('網路異常，無法連接 Gemini');
+          } finally {
+            isAiLoading.value = false;
+          }
+        };
+
+        onMounted(() => {
+          fetchMeetings();
+        });
+
+        return {
+          meetings, proposals, selectedMeeting,
+          newMeeting, newProposal,
+          aiInputText, isAiLoading,
+          fetchMeetings, createMeeting, selectMeeting, createProposal,
+          sendToAI, callAI
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
