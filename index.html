@@ -29,7 +29,7 @@
           <h1 class="text-xl font-bold text-white flex items-center gap-2">
             <span>🏫</span> 行政工作管理
           </h1>
-          <p class="text-xs text-slate-400 mt-1">雙軌同步 ‧ 檢核看板</p>
+          <p class="text-xs text-slate-400 mt-1">雙軌同步 ‧ 歷程檢核看板</p>
         </div>
 
         <!-- 模組分類切換 -->
@@ -40,7 +40,7 @@
             :key="cat.id" 
             @click="currentCategory = cat.id"
             :class="[
-              'w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition duration-150',
+              'w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition duration-150 cursor-pointer',
               currentCategory === cat.id 
                 ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/30' 
                 : 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -86,7 +86,7 @@
         <button 
           @click="fetchCloudData" 
           :disabled="syncStatus === 'syncing'"
-          class="w-full mt-1 bg-slate-800 hover:bg-slate-700 text-slate-200 py-1.5 px-3 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 border border-slate-700 disabled:opacity-50"
+          class="w-full mt-1 bg-slate-800 hover:bg-slate-700 text-slate-200 py-1.5 px-3 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 border border-slate-700 disabled:opacity-50 cursor-pointer"
         >
           <span>🔄</span> 手動同步雲端
         </button>
@@ -104,7 +104,7 @@
           </div>
           <div>
             <h2 class="text-2xl font-bold text-slate-800">{{ activeCategory.name }}</h2>
-            <p class="text-xs text-slate-500 mt-0.5">填寫事項、指派承辦、追蹤燈號進度並儲存附件</p>
+            <p class="text-xs text-slate-500 mt-0.5">填寫事項、指派承辦、追蹤燈號進度並記錄後續發展備註</p>
           </div>
         </div>
         <div class="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg self-start sm:self-auto">
@@ -137,7 +137,7 @@
                 type="button"
                 @click="form.lightColor = 'yellow'"
                 :class="[
-                  'py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border',
+                  'py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border cursor-pointer',
                   form.lightColor === 'yellow' 
                     ? 'bg-amber-50 border-amber-400 text-amber-700 ring-2 ring-amber-400/20 shadow-sm' 
                     : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
@@ -149,7 +149,7 @@
                 type="button"
                 @click="form.lightColor = 'green'"
                 :class="[
-                  'py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border',
+                  'py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border cursor-pointer',
                   form.lightColor === 'green' 
                     ? 'bg-emerald-50 border-emerald-400 text-emerald-700 ring-2 ring-emerald-400/20 shadow-sm' 
                     : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
@@ -161,13 +161,13 @@
                 type="button"
                 @click="form.lightColor = 'red'"
                 :class="[
-                  'py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border',
+                  'py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border cursor-pointer',
                   form.lightColor === 'red' 
                     ? 'bg-rose-50 border-rose-400 text-rose-700 ring-2 ring-rose-400/20 shadow-sm' 
                     : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                 ]"
               >
-                <span>🔴</span> 紅燈 (待核定/卡關)
+                <span>🔴</span> 紅燈 (待核定)
               </button>
             </div>
           </div>
@@ -201,7 +201,7 @@
             <button 
               type="button"
               @click="localAiRefine"
-              class="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded-lg transition border border-indigo-200/60"
+              class="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded-lg transition border border-indigo-200/60 cursor-pointer"
             >
               <span>✨</span> 免 API 一鍵公文語氣潤飾
             </button>
@@ -227,7 +227,7 @@
             >
             <span v-if="form.file" class="text-xs text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200 flex items-center gap-1.5">
               <span>📎</span> {{ form.file.name }} ({{ (form.file.size / 1024).toFixed(1) }} KB)
-              <button @click="clearSelectedFile" class="text-rose-500 font-bold hover:text-rose-700">✕</button>
+              <button @click="clearSelectedFile" class="text-rose-500 font-bold hover:text-rose-700 cursor-pointer">✕</button>
             </span>
           </div>
           <p v-if="isUploadingFile" class="text-xs text-blue-600 mt-2 animate-pulse">⏳ 檔案正在同步上傳至 Google Drive，請稍候...</p>
@@ -238,7 +238,7 @@
           <button 
             @click="handleSubmitRecord" 
             :disabled="isUploadingFile"
-            class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl shadow-md shadow-blue-600/20 transition duration-150 flex items-center justify-center gap-2 disabled:opacity-50"
+            class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl shadow-md shadow-blue-600/20 transition duration-150 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             <span>💾</span> 儲存案件 (雙軌同步)
           </button>
@@ -251,10 +251,10 @@
           <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
             <span>📊</span> 案件進度檢核看板
           </h3>
-          <span class="text-xs text-slate-500">各區塊依日期最新排序</span>
+          <span class="text-xs text-slate-500">各區塊依日期最新排序 ‧ 點擊「💬 後續發展」可新增追蹤備註歷程</span>
         </div>
 
-        <!-- 黃燈區 (討論中/辦理中) -->
+        <!-- 黃燈區 (辦理中) -->
         <div class="bg-white rounded-2xl border-2 border-amber-200/80 shadow-sm overflow-hidden">
           <div class="bg-amber-50/80 px-6 py-3.5 border-b border-amber-200 flex items-center justify-between">
             <h4 class="font-bold text-amber-900 flex items-center gap-2 text-sm md:text-base">
@@ -274,11 +274,13 @@
               :record="item"
               @change-light="updateRecordLight(item, $event)"
               @delete="deleteRecord(item.id)"
+              @add-log="handleAddLog(item, $event)"
+              @delete-log="handleDeleteLog(item, $event)"
             ></record-item>
           </div>
         </div>
 
-        <!-- 綠燈區 (已完成/已辦理) -->
+        <!-- 綠燈區 (已完成) -->
         <div class="bg-white rounded-2xl border-2 border-emerald-200/80 shadow-sm overflow-hidden">
           <div class="bg-emerald-50/80 px-6 py-3.5 border-b border-emerald-200 flex items-center justify-between">
             <h4 class="font-bold text-emerald-900 flex items-center gap-2 text-sm md:text-base">
@@ -298,11 +300,13 @@
               :record="item"
               @change-light="updateRecordLight(item, $event)"
               @delete="deleteRecord(item.id)"
+              @add-log="handleAddLog(item, $event)"
+              @delete-log="handleDeleteLog(item, $event)"
             ></record-item>
           </div>
         </div>
 
-        <!-- 紅燈區 (待核定/卡關/否決) -->
+        <!-- 紅燈區 (待核定/卡關) -->
         <div class="bg-white rounded-2xl border-2 border-rose-200/80 shadow-sm overflow-hidden">
           <div class="bg-rose-50/80 px-6 py-3.5 border-b border-rose-200 flex items-center justify-between">
             <h4 class="font-bold text-rose-900 flex items-center gap-2 text-sm md:text-base">
@@ -322,6 +326,8 @@
               :record="item"
               @change-light="updateRecordLight(item, $event)"
               @delete="deleteRecord(item.id)"
+              @add-log="handleAddLog(item, $event)"
+              @delete-log="handleDeleteLog(item, $event)"
             ></record-item>
           </div>
         </div>
@@ -348,7 +354,7 @@
             <button 
               type="button"
               @click="isManaging = !isManaging" 
-              class="text-[11px] px-2.5 py-1 rounded-lg transition font-medium"
+              class="text-[11px] px-2.5 py-1 rounded-lg transition font-medium cursor-pointer"
               :class="isManaging ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
             >
               {{ isManaging ? '完成標籤管理' : '⚙️ 管理標籤' }}
@@ -362,7 +368,7 @@
               :key="opt"
               @click="toggleTag(opt)"
               :class="[
-                'px-3.5 py-1.5 rounded-xl text-xs font-medium transition duration-150 border flex items-center gap-1.5 shadow-sm',
+                'px-3.5 py-1.5 rounded-xl text-xs font-medium transition duration-150 border flex items-center gap-1.5 shadow-sm cursor-pointer',
                 modelValue && modelValue.includes(opt)
                   ? 'bg-blue-600 text-white border-blue-600 font-semibold'
                   : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
@@ -376,7 +382,7 @@
             <button 
               type="button"
               @click="promptAddTag" 
-              class="px-3 py-1.5 rounded-xl text-xs font-medium border-2 border-dashed border-slate-300 text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/30 transition"
+              class="px-3 py-1.5 rounded-xl text-xs font-medium border-2 border-dashed border-slate-300 text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/30 transition cursor-pointer"
             >
               ➕ 新增標籤
             </button>
@@ -428,65 +434,135 @@
       }
     };
 
-    // --- 元件：案件卡片 (含燈號切換與附件預覽) ---
+    // --- 元件：案件卡片 (支援燈號切換、附件、後續發展歷程備註) ---
     const RecordItem = {
       props: ['record'],
-      emits: ['change-light', 'delete'],
+      emits: ['change-light', 'delete', 'add-log', 'delete-log'],
       template: `
-        <div class="py-4 first:pt-0 last:pb-0 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div class="flex-1 space-y-2">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg">{{ record.date }}</span>
-              
-              <!-- 承辦單位標籤 -->
-              <span v-for="u in parseTags(record.units)" :key="u" class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-100">
-                🏢 {{ u }}
-              </span>
+        <div class="py-4 first:pt-0 last:pb-0 space-y-3">
+          <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div class="flex-1 space-y-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg">{{ record.date }}</span>
+                
+                <!-- 承辦單位標籤 -->
+                <span v-for="u in parseTags(record.units)" :key="u" class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-100">
+                  🏢 {{ u }}
+                </span>
 
-              <!-- 負責人標籤 -->
-              <span v-for="p in parseTags(record.persons)" :key="p" class="text-xs font-semibold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200">
-                👤 {{ p }}
-              </span>
+                <!-- 負責人標籤 -->
+                <span v-for="p in parseTags(record.persons)" :key="p" class="text-xs font-semibold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200">
+                  👤 {{ p }}
+                </span>
+              </div>
+
+              <!-- 主旨內容 -->
+              <p class="text-sm font-bold text-slate-800 whitespace-pre-wrap leading-relaxed">{{ record.subject }}</p>
+
+              <!-- 附件連結 -->
+              <div v-if="record.fileUrl" class="pt-1">
+                <a :href="record.fileUrl" target="_blank" class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 hover:underline">
+                  <span>📎</span> 檢視附加檔案 ({{ record.fileName || '雲端附件' }})
+                </a>
+              </div>
             </div>
 
-            <!-- 主旨內容 -->
-            <p class="text-sm font-bold text-slate-800 whitespace-pre-wrap leading-relaxed">{{ record.subject }}</p>
-
-            <!-- 附件連結 -->
-            <div v-if="record.fileUrl" class="pt-1">
-              <a :href="record.fileUrl" target="_blank" class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 hover:underline">
-                <span>📎</span> 檢視附加檔案 ({{ record.fileName || '雲端附件' }})
-              </a>
+            <!-- 右側操作按鈕群 -->
+            <div class="flex items-center gap-2 self-end md:self-center shrink-0">
+              <button 
+                @click="showLogInput = !showLogInput" 
+                class="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl border border-blue-200 transition cursor-pointer"
+              >
+                {{ showLogInput ? '收合發展' : '💬 後續發展 (' + (record.logs ? record.logs.length : 0) + ')' }}
+              </button>
+              <select 
+                :value="record.lightColor" 
+                @change="$emit('change-light', $event.target.value)"
+                class="text-xs font-bold border border-slate-200 rounded-xl px-2.5 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              >
+                <option value="yellow">🟡 黃燈 (辦理中)</option>
+                <option value="green">🟢 綠燈 (已完成)</option>
+                <option value="red">🔴 紅燈 (待核定)</option>
+              </select>
+              <button 
+                @click="$emit('delete')"
+                class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition text-xs cursor-pointer"
+                title="刪除此案件"
+              >
+                🗑️
+              </button>
             </div>
           </div>
 
-          <!-- 右側快速操作 (更換燈號、刪除) -->
-          <div class="flex items-center gap-2 self-end md:self-center shrink-0">
-            <select 
-              :value="record.lightColor" 
-              @change="$emit('change-light', $event.target.value)"
-              class="text-xs font-bold border border-slate-200 rounded-xl px-2.5 py-1.5 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            >
-              <option value="yellow">🟡 黃燈 (辦理中)</option>
-              <option value="green">🟢 綠燈 (已完成)</option>
-              <option value="red">🔴 紅燈 (待核定)</option>
-            </select>
-            <button 
-              @click="$emit('delete')"
-              class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition text-xs"
-              title="刪除此案件"
-            >
-              🗑️
-            </button>
+          <!-- 後續發展進度歷程區塊 -->
+          <div v-if="showLogInput || (record.logs && record.logs.length > 0)" class="bg-slate-50/90 rounded-xl p-3.5 border border-slate-200 text-xs space-y-3">
+            <div class="font-bold text-slate-700 flex items-center justify-between">
+              <span>📌 後續追蹤與辦理歷程</span>
+            </div>
+
+            <!-- 新增歷程備註小表單 -->
+            <div v-if="showLogInput" class="flex flex-col sm:flex-row items-center gap-2 bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm">
+              <input 
+                v-model="newLogDate" 
+                type="date" 
+                class="border border-slate-200 rounded-lg p-1.5 text-xs bg-slate-50 focus:bg-white focus:outline-none cursor-pointer w-full sm:w-auto"
+              >
+              <input 
+                v-model="newLogText" 
+                type="text" 
+                placeholder="輸入後續發展進度或辦理備註..." 
+                class="border border-slate-200 rounded-lg p-1.5 text-xs flex-1 w-full focus:outline-none"
+                @keyup.enter="submitLog"
+              >
+              <button 
+                @click="submitLog" 
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg transition text-xs shrink-0 cursor-pointer w-full sm:w-auto"
+              >
+                ➕ 紀錄
+              </button>
+            </div>
+
+            <!-- 歷程清單 (依日期呈現) -->
+            <div v-if="record.logs && record.logs.length > 0" class="space-y-1.5 pt-1">
+              <div 
+                v-for="(log, idx) in record.logs" 
+                :key="idx" 
+                class="flex items-start justify-between bg-white px-3 py-2 rounded-lg border border-slate-150 text-slate-700"
+              >
+                <div class="flex items-start gap-2">
+                  <span class="font-bold text-blue-600 shrink-0 bg-blue-50 px-1.5 py-0.5 rounded text-[11px]">{{ log.date }}</span>
+                  <span class="leading-relaxed">{{ log.text }}</span>
+                </div>
+                <button @click="$emit('delete-log', idx)" class="text-slate-300 hover:text-rose-500 font-bold ml-2 cursor-pointer">✕</button>
+              </div>
+            </div>
+            <div v-else-if="!showLogInput" class="text-slate-400 text-[11px]">
+              尚無後續追蹤歷程。
+            </div>
           </div>
         </div>
       `,
-      methods: {
-        parseTags(str) {
+      setup(props, { emit }) {
+        const showLogInput = ref(false);
+        const newLogDate = ref(new Date().toISOString().split('T')[0]);
+        const newLogText = ref('');
+
+        const parseTags = (str) => {
           if (!str) return [];
           if (Array.isArray(str)) return str;
           return str.split(',').map(s => s.trim()).filter(Boolean);
-        }
+        };
+
+        const submitLog = () => {
+          if (!newLogText.value.trim()) return;
+          emit('add-log', {
+            date: newLogDate.value,
+            text: newLogText.value.trim()
+          });
+          newLogText.value = '';
+        };
+
+        return { showLogInput, newLogDate, newLogText, parseTags, submitLog };
       }
     };
 
@@ -494,7 +570,7 @@
     createApp({
       components: { TagManager, RecordItem },
       setup() {
-        // !!! 請替換為您的 GAS Web App 部署網址 (/exec) !!!
+        // GAS Web App 部署網址
         const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxSVJg9wRZryvZNjULjDrA5azW4Y8pXJ3hfTHsHwGJeeqaHgNO--domMpPZNo17GTQ_/exec';
 
         // 本機快取 Key
@@ -511,7 +587,7 @@
         const currentCategory = ref('official');
 
         // 同步狀態管理
-        const syncStatus = ref('synced'); // 'synced' | 'syncing' | 'error'
+        const syncStatus = ref('synced');
         const lastSyncTime = ref('');
 
         const syncStatusText = computed(() => {
@@ -535,7 +611,7 @@
 
         const saveTagsToLocalAndCloud = () => {
           localStorage.setItem(CACHE_KEY_TAGS, JSON.stringify(tags.value));
-          triggerCloudSave(); // 同步標籤至試算表備份
+          triggerCloudSave();
         };
 
         const addTag = (type, val) => {
@@ -549,7 +625,6 @@
           const idx = tags.value[type].indexOf(oldVal);
           if (idx !== -1) {
             tags.value[type].splice(idx, 1, newVal);
-            // 同時更新所有現存案件中的標籤文字
             records.value.forEach(r => {
               if (r[type] && r[type].includes(oldVal)) {
                 r[type] = r[type].map(item => item === oldVal ? newVal : item);
@@ -587,7 +662,7 @@
           return records.value.filter(r => r.category === catId).length;
         };
 
-        // 依目前分類與燈號分組，並按日期遞減排序 (最新排前面)
+        // 依目前分類與燈號分組，並按日期遞減排序
         const currentCategoryRecords = computed(() => {
           const list = records.value.filter(r => r.category === currentCategory.value);
           const sortByDate = (a, b) => new Date(b.date) - new Date(a.date);
@@ -632,7 +707,6 @@
           if (fileInput.value) fileInput.value.value = '';
         };
 
-        // 檔案轉 Base64
         const fileToBase64 = (file) => new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.readAsDataURL(file);
@@ -640,7 +714,7 @@
           reader.onerror = error => reject(error);
         });
 
-        // 雙軌同步：1. 本機讀取 (秒開)
+        // 本機讀取 (第一步秒開)
         const loadLocalCache = () => {
           const cached = localStorage.getItem(CACHE_KEY_RECORDS);
           if (cached) {
@@ -652,12 +726,11 @@
           }
         };
 
-        // 雙軌同步：儲存至本機 LocalStorage
         const saveLocalCache = () => {
           localStorage.setItem(CACHE_KEY_RECORDS, JSON.stringify(records.value));
         };
 
-        // 雙軌同步：2. 雲端 GET 讀取 (背景自動覆蓋更新)
+        // 雲端 GET 讀取 (第二步背景更新)
         const fetchCloudData = async () => {
           syncStatus.value = 'syncing';
           try {
@@ -665,7 +738,7 @@
             const json = await res.json();
             if (json.status === 'success' && json.records) {
               records.value = json.records;
-              saveLocalCache(); // 覆蓋本機快取
+              saveLocalCache();
               if (json.tags) {
                 tags.value = json.tags;
                 localStorage.setItem(CACHE_KEY_TAGS, JSON.stringify(tags.value));
@@ -673,7 +746,7 @@
               syncStatus.value = 'synced';
               lastSyncTime.value = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             } else {
-              syncStatus.value = 'synced'; // 無遠端資料但連線正常
+              syncStatus.value = 'synced';
             }
           } catch (e) {
             console.warn('雲端更新失敗，持續使用本地快取:', e);
@@ -681,7 +754,7 @@
           }
         };
 
-        // 雙軌同步：寫入雲端 POST (整包資料同步備份)
+        // 雲端 POST 寫入
         const triggerCloudSave = async () => {
           syncStatus.value = 'syncing';
           try {
@@ -706,7 +779,7 @@
           }
         };
 
-        // 新增案件 (支援樂觀更新與檔案上傳)
+        // 新增案件
         const handleSubmitRecord = async () => {
           if (!form.value.subject.trim()) {
             alert('請填寫事件主旨！');
@@ -716,7 +789,6 @@
           let uploadedFileUrl = '';
           let uploadedFileName = '';
 
-          // 若有夾帶檔案，先透過 GAS 上傳至 Google Drive 取得連結
           if (form.value.file) {
             isUploadingFile.value = true;
             syncStatus.value = 'syncing';
@@ -744,7 +816,6 @@
             }
           }
 
-          // 建立新案件物件
           const newRecord = {
             id: 'REC_' + Date.now(),
             category: currentCategory.value,
@@ -754,25 +825,40 @@
             persons: [...form.value.persons],
             subject: form.value.subject.trim(),
             fileUrl: uploadedFileUrl,
-            fileName: uploadedFileName
+            fileName: uploadedFileName,
+            logs: []
           };
 
-          // 樂觀更新：立刻寫入前端狀態與本機 LocalStorage
           records.value.unshift(newRecord);
           saveLocalCache();
 
-          // 重置表單
           form.value.subject = '';
           form.value.units = [];
           form.value.persons = [];
           form.value.file = null;
           if (fileInput.value) fileInput.value.value = '';
 
-          // 背景發送同步至 Google Sheets
           triggerCloudSave();
         };
 
-        // 快速更新燈號
+        // 新增歷程備註
+        const handleAddLog = (record, logItem) => {
+          if (!record.logs) record.logs = [];
+          record.logs.unshift(logItem);
+          saveLocalCache();
+          triggerCloudSave();
+        };
+
+        // 刪除歷程備註
+        const handleDeleteLog = (record, index) => {
+          if (confirm('確定要刪除這筆備註紀錄嗎？')) {
+            record.logs.splice(index, 1);
+            saveLocalCache();
+            triggerCloudSave();
+          }
+        };
+
+        // 快速切換燈號
         const updateRecordLight = (record, newLight) => {
           record.lightColor = newLight;
           saveLocalCache();
@@ -788,7 +874,6 @@
           }
         };
 
-        // 生命週期：第一步先讀本地秒開，第二步拉雲端更新
         onMounted(() => {
           loadLocalCache();
           fetchCloudData();
@@ -800,6 +885,7 @@
           tags, addTag, editTag, removeTag,
           form, fileInput, isUploadingFile, handleFileSelect, clearSelectedFile,
           localAiRefine, handleSubmitRecord, updateRecordLight, deleteRecord,
+          handleAddLog, handleDeleteLog,
           currentCategoryRecords
         };
       }
