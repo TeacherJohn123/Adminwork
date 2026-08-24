@@ -9,8 +9,7 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts: Noto Sans TC -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body {
@@ -104,7 +103,7 @@
           </div>
           <div>
             <h2 class="text-2xl font-bold text-slate-800">{{ activeCategory.name }}</h2>
-            <p class="text-xs text-slate-500 mt-0.5">填寫事項、指派承辦、追蹤燈號進度並記錄後續發展備註</p>
+            <p class="text-xs text-slate-500 mt-0.5">主旨明確 ‧ 說明分流 ‧ 看板可一鍵收合簡覽</p>
           </div>
         </div>
         <div class="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg self-start sm:self-auto">
@@ -194,21 +193,34 @@
           ></tag-manager>
         </div>
 
-        <!-- 事件主旨 + 免 API 智慧潤飾 -->
-        <div class="mb-5 pt-2 border-t border-slate-100">
+        <!-- 事件主旨 (單行/精簡) -->
+        <div class="mb-4 pt-2 border-t border-slate-100">
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">
+            事件主旨 <span class="text-rose-500">* (看板將預設僅顯示此主旨)</span>
+          </label>
+          <input 
+            v-model="form.subject" 
+            type="text" 
+            placeholder="請輸入精簡事件主旨..." 
+            class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm font-semibold focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+          >
+        </div>
+
+        <!-- 詳細說明 + 免 API 智慧潤飾 -->
+        <div class="mb-5">
           <div class="flex items-center justify-between mb-1.5">
-            <label class="block text-xs font-semibold text-slate-600">事件主旨與說明</label>
+            <label class="block text-xs font-semibold text-slate-600">詳細內容說明與草稿</label>
             <button 
               type="button"
               @click="localAiRefine"
               class="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded-lg transition border border-indigo-200/60 cursor-pointer"
             >
-              <span>✨</span> 免 API 一鍵公文語氣潤飾
+              <span>✨</span> 免 API 一鍵說明語氣潤飾
             </button>
           </div>
           <textarea 
-            v-model="form.subject" 
-            placeholder="請輸入主旨內容或草稿說明..." 
+            v-model="form.description" 
+            placeholder="請輸入更詳細的案件背景、擬辦方式或說明細節..." 
             rows="3" 
             class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition leading-relaxed"
           ></textarea>
@@ -251,7 +263,7 @@
           <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
             <span>📊</span> 案件進度檢核看板
           </h3>
-          <span class="text-xs text-slate-500">各區塊依日期最新排序 ‧ 點擊「💬 後續發展」可新增追蹤備註歷程</span>
+          <span class="text-xs text-slate-500">預設收合僅留主旨 ‧ 點擊「展開」可檢視說明、附件與歷程</span>
         </div>
 
         <!-- 黃燈區 (辦理中) -->
@@ -434,47 +446,46 @@
       }
     };
 
-    // --- 元件：案件卡片 (支援燈號切換、附件、後續發展歷程備註) ---
+    // --- 元件：案件卡片 (預設收合僅留主旨，支援一鍵展開說明、附件與歷程) ---
     const RecordItem = {
       props: ['record'],
       emits: ['change-light', 'delete', 'add-log', 'delete-log'],
       template: `
-        <div class="py-4 first:pt-0 last:pb-0 space-y-3">
-          <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div class="flex-1 space-y-2">
-              <div class="flex flex-wrap items-center gap-2">
-                <span class="text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg">{{ record.date }}</span>
+        <div class="py-3.5 first:pt-0 last:pb-0 space-y-2">
+          <!-- 頂部列：日期、標籤、主旨與操作 -->
+          <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+            <div class="flex-1 space-y-1.5 min-w-0">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="text-xs font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">{{ record.date }}</span>
                 
                 <!-- 承辦單位標籤 -->
-                <span v-for="u in parseTags(record.units)" :key="u" class="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-lg border border-indigo-100">
+                <span v-for="u in parseTags(record.units)" :key="u" class="text-[11px] font-semibold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md border border-indigo-100">
                   🏢 {{ u }}
                 </span>
 
                 <!-- 負責人標籤 -->
-                <span v-for="p in parseTags(record.persons)" :key="p" class="text-xs font-semibold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200">
+                <span v-for="p in parseTags(record.persons)" :key="p" class="text-[11px] font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200">
                   👤 {{ p }}
                 </span>
               </div>
 
-              <!-- 主旨內容 -->
-              <p class="text-sm font-bold text-slate-800 whitespace-pre-wrap leading-relaxed">{{ record.subject }}</p>
-
-              <!-- 附件連結 -->
-              <div v-if="record.fileUrl" class="pt-1">
-                <a :href="record.fileUrl" target="_blank" class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 hover:underline">
-                  <span>📎</span> 檢視附加檔案 ({{ record.fileName || '雲端附件' }})
-                </a>
-              </div>
+              <!-- 主旨 (預設保留顯示) -->
+              <h4 class="text-sm font-bold text-slate-800 leading-snug truncate md:whitespace-normal">
+                {{ record.subject }}
+              </h4>
             </div>
 
-            <!-- 右側操作按鈕群 -->
+            <!-- 右側操作：展開/收合、切換燈號、刪除 -->
             <div class="flex items-center gap-2 self-end md:self-center shrink-0">
               <button 
-                @click="showLogInput = !showLogInput" 
-                class="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl border border-blue-200 transition cursor-pointer"
+                @click="isExpanded = !isExpanded" 
+                class="text-xs font-bold px-3 py-1.5 rounded-xl border transition cursor-pointer flex items-center gap-1"
+                :class="isExpanded ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'"
               >
-                {{ showLogInput ? '收合發展' : '💬 後續發展 (' + (record.logs ? record.logs.length : 0) + ')' }}
+                <span>{{ isExpanded ? '🔼 收合' : '🔽 展開詳情' }}</span>
+                <span v-if="!isExpanded && (record.logs && record.logs.length > 0)" class="w-2 h-2 rounded-full bg-blue-500"></span>
               </button>
+
               <select 
                 :value="record.lightColor" 
                 @change="$emit('change-light', $event.target.value)"
@@ -484,6 +495,7 @@
                 <option value="green">🟢 綠燈 (已完成)</option>
                 <option value="red">🔴 紅燈 (待核定)</option>
               </select>
+
               <button 
                 @click="$emit('delete')"
                 class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition text-xs cursor-pointer"
@@ -494,56 +506,76 @@
             </div>
           </div>
 
-          <!-- 後續發展進度歷程區塊 -->
-          <div v-if="showLogInput || (record.logs && record.logs.length > 0)" class="bg-slate-50/90 rounded-xl p-3.5 border border-slate-200 text-xs space-y-3">
-            <div class="font-bold text-slate-700 flex items-center justify-between">
-              <span>📌 後續追蹤與辦理歷程</span>
+          <!-- 展開後的詳細內容 (說明、附件、後續發展歷程) -->
+          <div v-if="isExpanded" class="mt-2 pt-3 border-t border-dashed border-slate-200 space-y-3 bg-slate-50/60 p-3.5 rounded-xl">
+            
+            <!-- 詳細說明內容 -->
+            <div v-if="record.description" class="space-y-1">
+              <span class="text-[11px] font-bold text-slate-500">📋 詳細說明：</span>
+              <p class="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed bg-white p-2.5 rounded-lg border border-slate-200/80">
+                {{ record.description }}
+              </p>
             </div>
 
-            <!-- 新增歷程備註小表單 -->
-            <div v-if="showLogInput" class="flex flex-col sm:flex-row items-center gap-2 bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm">
-              <input 
-                v-model="newLogDate" 
-                type="date" 
-                class="border border-slate-200 rounded-lg p-1.5 text-xs bg-slate-50 focus:bg-white focus:outline-none cursor-pointer w-full sm:w-auto"
-              >
-              <input 
-                v-model="newLogText" 
-                type="text" 
-                placeholder="輸入後續發展進度或辦理備註..." 
-                class="border border-slate-200 rounded-lg p-1.5 text-xs flex-1 w-full focus:outline-none"
-                @keyup.enter="submitLog"
-              >
-              <button 
-                @click="submitLog" 
-                class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg transition text-xs shrink-0 cursor-pointer w-full sm:w-auto"
-              >
-                ➕ 紀錄
-              </button>
+            <!-- 附件連結 -->
+            <div v-if="record.fileUrl" class="pt-0.5">
+              <a :href="record.fileUrl" target="_blank" class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 bg-white px-2.5 py-1.5 rounded-lg border border-blue-200 hover:underline shadow-sm">
+                <span>📎</span> 檢視附加檔案 ({{ record.fileName || '雲端附件' }})
+              </a>
             </div>
 
-            <!-- 歷程清單 (依日期呈現) -->
-            <div v-if="record.logs && record.logs.length > 0" class="space-y-1.5 pt-1">
-              <div 
-                v-for="(log, idx) in record.logs" 
-                :key="idx" 
-                class="flex items-start justify-between bg-white px-3 py-2 rounded-lg border border-slate-150 text-slate-700"
-              >
-                <div class="flex items-start gap-2">
-                  <span class="font-bold text-blue-600 shrink-0 bg-blue-50 px-1.5 py-0.5 rounded text-[11px]">{{ log.date }}</span>
-                  <span class="leading-relaxed">{{ log.text }}</span>
+            <!-- 後續發展進度歷程區塊 -->
+            <div class="space-y-2 pt-1 border-t border-slate-200">
+              <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+                <span>📌 後續追蹤與辦理歷程 ({{ record.logs ? record.logs.length : 0 }})</span>
+              </div>
+
+              <!-- 新增歷程備註小表單 -->
+              <div class="flex flex-col sm:flex-row items-center gap-2 bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm">
+                <input 
+                  v-model="newLogDate" 
+                  type="date" 
+                  class="border border-slate-200 rounded-lg p-1.5 text-xs bg-slate-50 focus:bg-white focus:outline-none cursor-pointer w-full sm:w-auto"
+                >
+                <input 
+                  v-model="newLogText" 
+                  type="text" 
+                  placeholder="輸入後續發展進度或辦理備註..." 
+                  class="border border-slate-200 rounded-lg p-1.5 text-xs flex-1 w-full focus:outline-none"
+                  @keyup.enter="submitLog"
+                >
+                <button 
+                  @click="submitLog" 
+                  class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg transition text-xs shrink-0 cursor-pointer w-full sm:w-auto"
+                >
+                  ➕ 紀錄
+                </button>
+              </div>
+
+              <!-- 歷程清單 (依日期呈現) -->
+              <div v-if="record.logs && record.logs.length > 0" class="space-y-1.5 pt-1">
+                <div 
+                  v-for="(log, idx) in record.logs" 
+                  :key="idx" 
+                  class="flex items-start justify-between bg-white px-3 py-2 rounded-lg border border-slate-150 text-slate-700"
+                >
+                  <div class="flex items-start gap-2">
+                    <span class="font-bold text-blue-600 shrink-0 bg-blue-50 px-1.5 py-0.5 rounded text-[11px]">{{ log.date }}</span>
+                    <span class="leading-relaxed text-xs">{{ log.text }}</span>
+                  </div>
+                  <button @click="$emit('delete-log', idx)" class="text-slate-300 hover:text-rose-500 font-bold ml-2 cursor-pointer">✕</button>
                 </div>
-                <button @click="$emit('delete-log', idx)" class="text-slate-300 hover:text-rose-500 font-bold ml-2 cursor-pointer">✕</button>
+              </div>
+              <div v-else class="text-slate-400 text-[11px]">
+                尚無後續追蹤歷程。
               </div>
             </div>
-            <div v-else-if="!showLogInput" class="text-slate-400 text-[11px]">
-              尚無後續追蹤歷程。
-            </div>
+
           </div>
         </div>
       `,
       setup(props, { emit }) {
-        const showLogInput = ref(false);
+        const isExpanded = ref(false); // 預設收合，只留下主旨
         const newLogDate = ref(new Date().toISOString().split('T')[0]);
         const newLogText = ref('');
 
@@ -562,7 +594,7 @@
           newLogText.value = '';
         };
 
-        return { showLogInput, newLogDate, newLogText, parseTags, submitLog };
+        return { isExpanded, newLogDate, newLogText, parseTags, submitLog };
       }
     };
 
@@ -570,14 +602,11 @@
     createApp({
       components: { TagManager, RecordItem },
       setup() {
-        // GAS Web App 部署網址
         const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxSVJg9wRZryvZNjULjDrA5azW4Y8pXJ3hfTHsHwGJeeqaHgNO--domMpPZNo17GTQ_/exec';
 
-        // 本機快取 Key
         const CACHE_KEY_RECORDS = 'ADMIN_APP_RECORDS_V1';
         const CACHE_KEY_TAGS = 'ADMIN_APP_TAGS_V1';
 
-        // 側欄模組
         const categories = [
           { id: 'official', name: '公文法規', icon: '📜' },
           { id: 'decision', name: '行政決議', icon: '⚖️' },
@@ -586,7 +615,6 @@
         ];
         const currentCategory = ref('official');
 
-        // 同步狀態管理
         const syncStatus = ref('synced');
         const lastSyncTime = ref('');
 
@@ -596,7 +624,6 @@
           return '離線模式 (同步異常)';
         });
 
-        // 預設與自訂標籤
         const defaultTags = {
           units: ['教務處', '學務處', '總務處', '輔導室', '幼兒園', '人事室', '主計室'],
           persons: ['教學組長', '學務主任', '生教組長', '總務主任', '出納組長', '輔導主任', '資訊組長']
@@ -640,17 +667,18 @@
           saveTagsToLocalAndCloud();
         };
 
-        // 案件資料與表單
         const records = ref([]);
         const isUploadingFile = ref(false);
         const fileInput = ref(null);
 
+        // 主旨與說明分開
         const form = ref({
           date: new Date().toISOString().split('T')[0],
           lightColor: 'yellow',
           units: [],
           persons: [],
           subject: '',
+          description: '',
           file: null
         });
 
@@ -662,7 +690,6 @@
           return records.value.filter(r => r.category === catId).length;
         };
 
-        // 依目前分類與燈號分組，並按日期遞減排序
         const currentCategoryRecords = computed(() => {
           const list = records.value.filter(r => r.category === currentCategory.value);
           const sortByDate = (a, b) => new Date(b.date) - new Date(a.date);
@@ -673,13 +700,13 @@
           };
         });
 
-        // 免 API 一鍵智慧文字潤飾
+        // 免 API 一鍵智慧文字潤飾 (針對詳細說明)
         const localAiRefine = () => {
-          if (!form.value.subject) {
-            alert('請先輸入事件主旨或草稿！');
+          if (!form.value.description) {
+            alert('請先在說明欄位輸入草稿！');
             return;
           }
-          let text = form.value.subject;
+          let text = form.value.description;
           const replaceRules = [
             { req: /我想說|我覺得|想要/g, rep: '擬' },
             { req: /去做|去弄|處理一下/g, rep: '辦理' },
@@ -693,10 +720,9 @@
           replaceRules.forEach(rule => {
             text = text.replace(rule.req, rule.rep);
           });
-          form.value.subject = text.startsWith('【擬辦】') ? text : `【擬辦】${text}`;
+          form.value.description = text.startsWith('【擬辦說明】') ? text : `【擬辦說明】\n${text}`;
         };
 
-        // 檔案選擇
         const handleFileSelect = (e) => {
           const f = e.target.files[0];
           if (f) form.value.file = f;
@@ -714,7 +740,6 @@
           reader.onerror = error => reject(error);
         });
 
-        // 本機讀取 (第一步秒開)
         const loadLocalCache = () => {
           const cached = localStorage.getItem(CACHE_KEY_RECORDS);
           if (cached) {
@@ -730,7 +755,6 @@
           localStorage.setItem(CACHE_KEY_RECORDS, JSON.stringify(records.value));
         };
 
-        // 雲端 GET 讀取 (第二步背景更新)
         const fetchCloudData = async () => {
           syncStatus.value = 'syncing';
           try {
@@ -754,7 +778,6 @@
           }
         };
 
-        // 雲端 POST 寫入
         const triggerCloudSave = async () => {
           syncStatus.value = 'syncing';
           try {
@@ -779,7 +802,6 @@
           }
         };
 
-        // 新增案件
         const handleSubmitRecord = async () => {
           if (!form.value.subject.trim()) {
             alert('請填寫事件主旨！');
@@ -824,6 +846,7 @@
             units: [...form.value.units],
             persons: [...form.value.persons],
             subject: form.value.subject.trim(),
+            description: form.value.description.trim(),
             fileUrl: uploadedFileUrl,
             fileName: uploadedFileName,
             logs: []
@@ -832,7 +855,9 @@
           records.value.unshift(newRecord);
           saveLocalCache();
 
+          // 重置表單
           form.value.subject = '';
+          form.value.description = '';
           form.value.units = [];
           form.value.persons = [];
           form.value.file = null;
@@ -841,7 +866,6 @@
           triggerCloudSave();
         };
 
-        // 新增歷程備註
         const handleAddLog = (record, logItem) => {
           if (!record.logs) record.logs = [];
           record.logs.unshift(logItem);
@@ -849,7 +873,6 @@
           triggerCloudSave();
         };
 
-        // 刪除歷程備註
         const handleDeleteLog = (record, index) => {
           if (confirm('確定要刪除這筆備註紀錄嗎？')) {
             record.logs.splice(index, 1);
@@ -858,14 +881,12 @@
           }
         };
 
-        // 快速切換燈號
         const updateRecordLight = (record, newLight) => {
           record.lightColor = newLight;
           saveLocalCache();
           triggerCloudSave();
         };
 
-        // 刪除案件
         const deleteRecord = (id) => {
           if (confirm('確定要刪除這筆案件紀錄嗎？')) {
             records.value = records.value.filter(r => r.id !== id);
