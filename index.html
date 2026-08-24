@@ -161,7 +161,7 @@
                     : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                 ]"
               >
-                <span>🔴</span> 紅燈 (待核定)
+                <span>🔴</span> 紅燈 (未同意)
               </button>
             </div>
           </div>
@@ -312,11 +312,11 @@
           </div>
         </div>
 
-        <!-- 紅燈區 (待核定/卡關) -->
+        <!-- 紅燈區 (未同意/卡關) -->
         <div class="bg-white rounded-2xl border-2 border-rose-200/80 shadow-sm overflow-hidden">
           <div class="bg-rose-50/80 px-6 py-3.5 border-b border-rose-200 flex items-center justify-between">
             <h4 class="font-bold text-rose-900 flex items-center gap-2 text-sm md:text-base">
-              <span>🔴</span> 待核定 / 待決策 / 卡關
+              <span>🔴</span> 未同意 / 待決策 / 卡關
             </h4>
             <span class="bg-rose-200 text-rose-900 text-xs font-bold px-2.5 py-0.5 rounded-full">
               {{ currentCategoryRecords.red.length }} 件
@@ -495,7 +495,7 @@
               >
                 <option value="yellow">🟡 黃燈 (辦理中)</option>
                 <option value="green">🟢 綠燈 (已完成)</option>
-                <option value="red">🔴 紅燈 (待核定)</option>
+                <option value="red">🔴 紅燈 (未同意)</option>
               </select>
 
               <button 
@@ -954,14 +954,12 @@
           triggerCloudSave();
         };
 
-        // 新增歷程備註
         const handleAddLog = (record, logItem) => {
           if (!record.logs) record.logs = [];
           record.logs.unshift(logItem);
           saveLocalAndCloud();
         };
 
-        // 編輯歷程備註
         const handleEditLog = (record, { index, date, text }) => {
           if (record.logs && record.logs[index]) {
             record.logs[index].date = date;
@@ -970,7 +968,6 @@
           }
         };
 
-        // 刪除歷程備註
         const handleDeleteLog = (record, index) => {
           if (confirm('確定要刪除這筆備註紀錄嗎？')) {
             record.logs.splice(index, 1);
