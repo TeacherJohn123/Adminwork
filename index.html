@@ -698,26 +698,76 @@
           } catch (e) { syncStatus.value = 'error'; }
         };
 
-        const handleSubmitRecord = async () => { /* 省略與雲端儲存細節 */ };
-        const handleAddLog = (record, logItem) => { if (!record.logs) record.logs = []; record.logs.unshift(logItem); saveLocalAndCloud(); };
-        const handleEditLog = (record, { index, date, text }) => { if (record.logs && record.logs[index]) { record.logs[index].date = date; record.logs[index].text = text; saveLocalAndCloud(); } };
-        const handleDeleteLog = (record, index) => { if (confirm('確定要刪除這筆備註紀錄嗎？')) { record.logs.splice(index, 1); saveLocalAndCloud(); } };
-        const updateRecordLight = (record, newLight) => { record.lightColor = newLight; saveLocalAndCloud(); };
-        const deleteRecord = (id) => { if (confirm('確定要刪除這筆案件紀錄嗎？')) { records.value = records.value.filter(r => r.id !== id); saveLocalAndCloud(); } };
+        const handleSubmitRecord = async () => {
+          if (!form.value.subject.trim()) {
+            alert('請填寫事件主旨！');
+            return;
+          }
 
-        onMounted(() => { loadLocalCache(); fetchCloudData(); });
+          let uploadedFileUrl = '';
+          let uploadedFileName = '';
 
-        return {
-          activeView, categories, currentCategory, activeCategory, countByCategory,
-          syncStatus, syncStatusText, lastSyncTime, fetchCloudData,
-          tags, addTag, editTag, removeTag,
-          examSchedules, addExamSchedule, removeExamSchedule,
-          rotationDuties, promptAddDuty, deleteDuty, addDutyMember, removeDutyMember,
-          form, fileInput, isUploadingFile, handleFileSelect, clearSelectedFile,
-          localAiRefine, handleSubmitRecord, updateRecordLight, deleteRecord,
-          handleAddLog, handleEditLog, handleDeleteLog, saveLocalAndCloud,
-          records, currentCategoryRecords
+          // 處理附件上傳
+          if (form.value.file) {
+            isUploadingFile.value = true;
+            syncStatus.value = 'syncing';
+            try {
+              const base64Data = await fileToBase64(form.value.file);
+              const res = await fetch(GAS_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                  action: 'uploadFile',
+                  fileName: form.value.file.name,
+                  mimeType: form.value.file.type,
+                  fileData: base64Data
+                })
+              });
+              const json = await res.json();
+              if (json.status === 'success') {
+                uploadedFileUrl = json.fileUrl;
+                uploadedFileName = form.value.file.name;
+              }
+            } catch (err) {
+              alert('檔案上傳至雲端失敗，但案件仍將先儲存至本機。');
+            } finally {
+              isUploadingFile.value = false;
+            }
+          }
+
+          // 建立新案件物件 (包含新增的 attendees 與會人員)
+          const newRecord = {
+            id: 'REC_' + Date.now(),
+            category: currentCategory.value,
+            date: form.value.date,
+            lightColor: form.value.lightColor,
+            units: [...form.value.units],
+            persons: [...form.value.persons],
+            attendees: [...form.value.attendees],
+            subject: form.value.subject.trim(),
+            description: form.value.description.trim(),
+            fileUrl: uploadedFileUrl,
+            fileName: uploadedFileName,
+            logs: []
+          };
+
+          // 樂觀更新：立刻加入前端畫面並存入本機快取
+          records.value.unshift(newRecord);
+          saveLocalCache();
+
+          // 瞬間清空表單，方便輸入下一筆
+          form.value.subject = '';
+          form.value.description = '';
+          form.value.units = [];
+          form.value.persons = [];
+          form.value.attendees = [];
+          form.value.file = null;
+          if (fileInput.value) fileInput.value.value = '';
+
+          // 背景觸發雲端同步
+          triggerCloudSave();
         };
+
       }
     }).mount('#app');
   </script>
