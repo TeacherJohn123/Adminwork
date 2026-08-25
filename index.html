@@ -693,12 +693,17 @@
         const CACHE_KEY_RECORDS = 'ADMIN_APP_RECORDS_V1';
         const CACHE_KEY_TAGS = 'ADMIN_APP_TAGS_V1';
 
-        const categories = [
+                const categories = [
           { id: 'official', name: '公文法規', icon: '📜' },
           { id: 'decision', name: '行政決議', icon: '⚖️' },
           { id: 'academic', name: '學年會議', icon: '🏫' },
-          { id: 'discussion', name: '建議討論', icon: '💡' }
+          { id: 'discussion', name: '建議討論', icon: '💡' },
+          // 以下為新增的三個類別
+          { id: 'grad_trip', name: '畢業旅行', icon: '🚌' },
+          { id: 'grad_yearbook', name: '畢業紀念冊', icon: '📖' },
+          { id: 'grad_ceremony', name: '畢業典禮', icon: '🎓' }
         ];
+
         const currentCategory = ref('official');
 
         const syncStatus = ref('synced');
