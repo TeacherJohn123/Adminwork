@@ -4,9 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>行政工作輔助系統</title>
-  <!-- 載入 Vue 3 -->
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-  <!-- 載入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans">
@@ -44,6 +42,7 @@
            <!-- 表單區塊 -->
            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
              <h3 class="text-lg font-bold mb-4 text-blue-800 flex items-center gap-2">➕ 新增紀錄</h3>
+             
              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
                <div>
                  <label class="block text-sm font-semibold mb-1 text-slate-600">主旨 / 案由</label>
@@ -53,14 +52,14 @@
                  <label class="block text-sm font-semibold mb-1 text-slate-600">日期</label>
                  <input type="date" v-model="form.date" class="w-full border rounded-lg p-2.5 focus:ring focus:ring-blue-200">
                </div>
-               <div>
-                 <label class="block text-sm font-semibold mb-1 text-slate-600">承辦單位</label>
-                 <input type="text" v-model="form.unit" class="w-full border rounded-lg p-2.5 focus:ring focus:ring-blue-200" placeholder="如：教務處、學務處...">
-               </div>
-               <div>
-                 <label class="block text-sm font-semibold mb-1 text-slate-600">負責人 / 與會委員</label>
-                 <input type="text" v-model="form.person" class="w-full border rounded-lg p-2.5 focus:ring focus:ring-blue-200" placeholder="如：王主任...">
-               </div>
+             </div>
+
+             <!-- 平鋪標籤管理區塊 -->
+             <div class="space-y-4 mb-5 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                <!-- 承辦單位標籤 -->
+                <tag-selector label="承辦單位" v-model="form.unit" :options="tags.units" @add="addTag('units', $event)" @remove="removeTag('units', $event)" @edit="editTag('units', $event)"></tag-selector>
+                <!-- 負責人標籤 -->
+                <tag-selector label="負責人 / 與會委員" v-model="form.person" :options="tags.persons" @add="addTag('persons', $event)" @remove="removeTag('persons', $event)" @edit="editTag('persons', $event)"></tag-selector>
              </div>
              
              <div class="mb-5">
@@ -83,8 +82,8 @@
                    <div class="font-bold text-lg text-slate-800 mb-1">{{ record.subject }}</div>
                    <div class="text-sm text-slate-500 flex gap-3">
                      <span>📅 {{ record.date }}</span>
-                     <span>🏢 {{ record.unit }}</span>
-                     <span>👤 {{ record.person }}</span>
+                     <span v-if="record.unit">🏢 {{ record.unit }}</span>
+                     <span v-if="record.person">👤 {{ record.person }}</span>
                    </div>
                  </div>
                  <div class="flex gap-4 items-center">
@@ -110,6 +109,13 @@
                 <label class="font-semibold">學年度：</label>
                 <input type="text" v-model="examYear" placeholder="例如：113" class="border p-2 rounded-lg w-24 text-center focus:ring focus:ring-blue-200">
               </div>
+              
+              <!-- 出題教師標籤庫 -->
+              <div class="mb-4">
+                 <tag-selector label="出題教師清單" v-model="selectedTeacherForTable" :options="tags.teachers" @add="addTag('teachers', $event)" @remove="removeTag('teachers', $event)" @edit="editTag('teachers', $event)"></tag-selector>
+                 <div class="text-xs text-slate-500 mt-1">請點選上方標籤或直接在下方表格輸入教師姓名。</div>
+              </div>
+
               <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse bg-slate-50 rounded-lg overflow-hidden">
                   <thead class="bg-slate-200">
@@ -123,10 +129,10 @@
                     <tr v-for="(term, index) in examTerms" :key="term">
                       <td class="border-b p-3 font-semibold text-slate-700">{{ term }}</td>
                       <td class="border-b p-2">
-                        <input type="text" v-model="examData[index].chinese" placeholder="請填寫老師姓名" class="border p-2 rounded-lg w-full bg-white">
+                        <input type="text" v-model="examData[index].chinese" placeholder="請填寫或選取上方老師" class="border p-2 rounded-lg w-full bg-white">
                       </td>
                       <td class="border-b p-2">
-                        <input type="text" v-model="examData[index].math" placeholder="請填寫老師姓名" class="border p-2 rounded-lg w-full bg-white">
+                        <input type="text" v-model="examData[index].math" placeholder="請填寫或選取上方老師" class="border p-2 rounded-lg w-full bg-white">
                       </td>
                     </tr>
                   </tbody>
@@ -171,7 +177,63 @@
   <script>
     const { createApp, ref, computed, watch } = Vue;
 
+    // --- 平鋪式標籤選擇與編輯元件 ---
+    const TagSelector = {
+      props: ['label', 'modelValue', 'options'],
+      emits: ['update:modelValue', 'add', 'remove', 'edit'],
+      template: `
+        <div class="border-b border-slate-200 pb-3 mb-3 last:border-0 last:mb-0 last:pb-0">
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-sm font-bold text-slate-700">
+              {{ label }}：<span class="text-blue-600 ml-1">{{ modelValue || '尚未選擇' }}</span>
+            </label>
+            <button @click="isEditing = !isEditing" class="text-xs px-3 py-1 rounded-full transition" :class="isEditing ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'">
+              {{ isEditing ? '✅ 完成編輯' : '⚙️ 管理標籤' }}
+            </button>
+          </div>
+          <div class="flex flex-wrap gap-2 items-center">
+            <button v-for="opt in options" :key="opt" @click="selectTag(opt)" 
+              class="px-4 py-1.5 rounded-full text-sm font-medium transition shadow-sm border"
+              :class="modelValue === opt ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-300 hover:border-blue-400 hover:bg-blue-50'">
+              {{ opt }}
+              <span v-if="isEditing" @click.stop="promptEdit(opt)" class="ml-2 text-blue-400 hover:text-blue-600 cursor-pointer text-xs">✏️</span>
+              <span v-if="isEditing" @click.stop="promptRemove(opt)" class="ml-1 text-red-400 hover:text-red-600 cursor-pointer text-xs">❌</span>
+            </button>
+            <button @click="promptAdd" class="px-3 py-1.5 rounded-full text-sm border-2 border-dashed border-slate-400 text-slate-500 hover:bg-slate-200 transition">
+              ➕ 新增
+            </button>
+          </div>
+        </div>
+      `,
+      setup(props, { emit }) {
+        const isEditing = ref(false);
+
+        const selectTag = (opt) => {
+          if (!isEditing.value) {
+            emit('update:modelValue', props.modelValue === opt ? '' : opt); 
+          }
+        };
+        const promptAdd = () => { 
+          const val = prompt(`新增 [${props.label}] 標籤:`); 
+          if(val && val.trim()) emit('add', val.trim()); 
+        };
+        const promptEdit = (oldVal) => {
+          const newVal = prompt(`修改 [${props.label}] 標籤名稱:`, oldVal);
+          if(newVal && newVal.trim() && newVal !== oldVal) emit('edit', { old: oldVal, new: newVal.trim() });
+        };
+        const promptRemove = (val) => { 
+          if(confirm(`確定要刪除 [${val}] 標籤嗎？`)) {
+            emit('remove', val);
+            if(props.modelValue === val) emit('update:modelValue', ''); 
+          }
+        };
+
+        return { isEditing, selectTag, promptAdd, promptEdit, promptRemove };
+      }
+    };
+
     createApp({
+      components: { TagSelector },
       setup() {
         const currentTab = ref('行政決議');
         const records = ref([]);
@@ -195,6 +257,30 @@
 
         const newRotationTask = ref('');
         const newRotationPersons = ref('');
+        
+        // --- 標籤狀態管理 ---
+        const loadTags = () => {
+          const defaultTags = {
+            units: ['教務處', '學務處', '總務處', '輔導室', '人事室', '會計室'],
+            persons: ['校長', '教務主任', '學務主任', '總務主任', '輔導主任'],
+            teachers: ['王老師', '李老師', '陳老師', '林老師'] // 供出題表格選用
+          };
+          const saved = localStorage.getItem('adminSystemTags');
+          return saved ? JSON.parse(saved) : defaultTags;
+        };
+        
+        const tags = ref(loadTags());
+        const selectedTeacherForTable = ref(''); // 僅作暫存選取用
+
+        const addTag = (category, val) => { if (!tags.value[category].includes(val)) tags.value[category].push(val); saveToLocal(); };
+        const removeTag = (category, val) => { tags.value[category] = tags.value[category].filter(t => t !== val); saveToLocal(); };
+        const editTag = (category, payload) => {
+          const idx = tags.value[category].indexOf(payload.old);
+          if(idx !== -1) {
+            tags.value[category].splice(idx, 1, payload.new);
+            saveToLocal();
+          }
+        };
 
         // 初始化：讀取 localStorage (本機快取)
         const loadLocal = () => {
@@ -223,12 +309,13 @@
             examYear: examYear.value,
             examData: examData.value
           }));
+          localStorage.setItem('adminSystemTags', JSON.stringify(tags.value));
           alert('✅ 已暫存至本機快取！當前資料不會遺失。');
         };
 
-        // 監聽表格資料變更，自動本機備份
-        watch(examData, () => { saveToLocal(); }, { deep: true });
-        watch(examYear, () => { saveToLocal(); });
+        // 監聽表格資料變更，自動本機備份 (可選)
+        // watch(examData, () => { saveToLocal(); }, { deep: true });
+        // watch(examYear, () => { saveToLocal(); });
 
         const filteredRecords = computed(() => {
           return records.value.filter(r => r.category === currentTab.value).reverse();
@@ -247,6 +334,8 @@
             status: form.value.status
           });
           form.value.subject = '';
+          form.value.unit = '';
+          form.value.person = '';
           saveToLocal();
         };
 
@@ -292,7 +381,12 @@
           deleteRotation,
           examYear,
           examTerms,
-          examData
+          examData,
+          tags,
+          addTag,
+          removeTag,
+          editTag,
+          selectedTeacherForTable
         }
       }
     }).mount('#app');
