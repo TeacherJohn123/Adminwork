@@ -83,9 +83,9 @@
               <p class="text-xs text-slate-500 mt-0.5">案件內容、承辦與負責人員可自創與修訂</p>
             </div>
           </div>
+          <div class="text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg">最後同步：{{ lastSyncTime || '尚未同步' }}</div>
         </header>
 
-        <!-- 新增案件表單 -->
         <section class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-5">
           <h3 class="text-base font-bold text-slate-800 flex items-center gap-2"><span>📝</span> 新增【{{ activeCategory.name }}】案件</h3>
           
@@ -122,6 +122,7 @@
             <textarea v-model="form.description" placeholder="請輸入說明..." rows="3" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-sm focus:bg-white focus:outline-none"></textarea>
           </div>
 
+          <!-- 登錄雲端硬碟網址欄位 -->
           <div class="p-4 rounded-xl border border-dashed border-blue-200 bg-blue-50/40 space-y-2">
             <label class="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
               <span>🔗</span> 登錄 Google 雲端硬碟網址 (檔案或資料夾分享連結)
@@ -131,7 +132,7 @@
 
           <div class="flex justify-end pt-2">
             <button @click="handleSubmitRecord" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl shadow-md transition cursor-pointer">
-              💾 儲存案件 (雙軌同步)
+              💾 儲存案件
             </button>
           </div>
         </section>
@@ -156,7 +157,7 @@
         </section>
       </template>
 
-      <!-- 視圖 2：定期評量出題分配 -->
+      <!-- 視圖 2：定期評量出題 -->
       <template v-else-if="activeView === 'exam'">
         <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
           <div class="flex items-center gap-3">
@@ -258,35 +259,50 @@
 
       <!-- 視圖 3：工作輪流順序登記 -->
       <template v-else-if="activeView === 'rotation'">
-        <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 mb-6">
+        <header class="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 mb-6">
           <div class="flex items-center gap-3">
             <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl font-bold">🔄</div>
             <div>
               <h2 class="text-2xl font-bold text-slate-800">工作輪流順序登記</h2>
-              <p class="text-xs text-slate-500 mt-0.5">自創輪值項目並排定接續人員</p>
+              <p class="text-xs text-slate-500 mt-0.5">自創輪值項目並排定接續人員與日期</p>
             </div>
           </div>
-          <button @click="promptAddDuty" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition cursor-pointer">➕ 建立新輪流工作</button>
+          <button @click="promptAddDuty" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer">➕ 建立新輪流工作</button>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div v-for="duty in rotationDuties" :key="duty.id" class="bg-white p-5 rounded-2xl shadow-sm border space-y-4">
-            <div class="flex justify-between border-b pb-3">
-              <h4 class="font-bold">📌 {{ duty.title }}</h4>
-              <button @click="deleteDuty(duty.id)" class="text-slate-400 hover:text-rose-600 text-xs p-1 cursor-pointer">🗑️</button>
+            <div class="flex justify-between border-b pb-3 items-center">
+              <h4 class="font-bold flex items-center gap-2 text-slate-800">
+                <span>📌 {{ duty.title }}</span>
+                <!-- 修改輪流工作名稱按鈕 -->
+                <button @click="promptEditDutyTitle(duty)" class="text-slate-400 hover:text-blue-500 text-xs px-1 cursor-pointer">✏️</button>
+              </h4>
+              <button @click="deleteDuty(duty.id)" class="text-slate-400 hover:text-rose-600 cursor-pointer">🗑️</button>
             </div>
-            <div class="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-xl border min-h-[50px]">
+
+            <!-- 輪值人員標籤區 -->
+            <div class="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-xl border min-h-[50px] items-center">
               <template v-for="(person, pIdx) in duty.members" :key="pIdx">
-                <span class="bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-xs font-semibold">
-                  <span class="text-indigo-600 mr-1">#{{ pIdx + 1 }}</span> {{ person }}
-                  <button @click="removeDutyMember(duty, pIdx)" class="text-rose-500 ml-1 cursor-pointer">✕</button>
+                <span class="bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center shadow-sm">
+                  <span class="text-indigo-600 mr-1.5">#{{ pIdx + 1 }}</span> 
+                  <!-- 相容舊資料字串寫法，或顯示新物件的 name -->
+                  <span>{{ typeof person === 'string' ? person : person.name }}</span>
+                  <!-- 顯示日期/月份 -->
+                  <span v-if="person.date" class="ml-1.5 text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{{ person.date }}</span>
+                  
+                  <button @click="removeDutyMember(duty, pIdx)" class="text-rose-400 hover:text-rose-600 ml-1.5 cursor-pointer">✕</button>
                 </span>
-                <span v-if="pIdx < duty.members.length - 1" class="text-slate-400 text-xs mt-1">➔</span>
+                <span v-if="pIdx < duty.members.length - 1" class="text-slate-300 text-xs">➔</span>
               </template>
+              <span v-if="duty.members.length === 0" class="text-xs text-slate-400">目前尚無排定人員</span>
             </div>
+
+            <!-- 新增人員與日期輸入區 -->
             <div class="flex gap-2">
-              <input v-model="duty.newMemberInput" @keyup.enter="addDutyMember(duty)" placeholder="輸入姓名加入順序..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-400">
-              <button @click="addDutyMember(duty)" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs cursor-pointer">加入</button>
+              <input v-model="duty.newMemberInput" @keyup.enter="addDutyMember(duty)" placeholder="輸入姓名..." class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-400">
+              <input v-model="duty.newMemberDate" @keyup.enter="addDutyMember(duty)" placeholder="日期/月份(選填)" class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-400">
+              <button @click="addDutyMember(duty)" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs cursor-pointer shrink-0">加入</button>
             </div>
           </div>
         </div>
@@ -306,7 +322,7 @@
         <div>
           <div class="flex justify-between mb-2">
             <div class="text-xs font-semibold text-slate-600"><span>{{ icon }}</span> {{ label }}：<span class="text-blue-600 ml-1">{{ modelValue.join('、') || '未選取' }}</span></div>
-            <button @click="isManaging = !isManaging" class="text-[11px] px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 cursor-pointer">{{ isManaging ? '完成管理' : '⚙️ 管理標籤' }}</button>
+            <button @click="isManaging = !isManaging" class="text-[11px] px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 cursor-pointer">{{ isManaging ? '完成管理' : '⚙️ 管理標籤' }}</button>
           </div>
           <div class="flex flex-wrap gap-2">
             <button v-for="opt in options" :key="opt" @click="toggleTag(opt)" :class="['px-3 py-1.5 text-xs border rounded-lg cursor-pointer transition', modelValue.includes(opt) ? 'bg-blue-600 text-white font-bold' : 'bg-white text-slate-700']">
@@ -424,7 +440,6 @@
     createApp({
       components: { TagManager, RecordItem },
       setup() {
-        // !!! 請確認這裡的 URL 正確無誤 !!!
         const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxSVJg9wRZryvZNjULjDrA5azW4Y8pXJ3hfTHsHwGJeeqaHgNO--domMpPZNo17GTQ_/exec';
         
         const activeView = ref('records');
@@ -441,12 +456,17 @@
         const lastSyncTime = ref('');
 
         const tags = ref({ units: ['教務處', '學務處'], persons: ['主任', '組長'] });
+        
         const teacherList = ref(['王老師', '李老師', '陳老師', '張老師', '林老師', '趙老師']);
         const isManagingTeacherTags = ref(false);
-
+        
         const examSchedules = ref([{ id: 'EXAM_113', year: '113', midChinese: '', finalChinese: '', midMath: '', finalMath: '' }]);
 
-        const rotationDuties = ref([{ id: 'DUTY_1', title: '學年晨會紀錄輪流', members: ['王老師', '李老師'], newMemberInput: '' }]);
+        // 輪流工作預設資料 (包含姓名與日期)
+        const rotationDuties = ref([
+          { id: 'DUTY_1', title: '學年晨會紀錄輪流', members: [{name: '王老師', date: '9/14'}, {name: '李老師', date: '9/21'}], newMemberInput: '', newMemberDate: '' }
+        ]);
+
         const records = ref([]);
         const form = ref({ date: new Date().toISOString().split('T')[0], lightColor: 'yellow', units: [], persons: [], subject: '', description: '', fileUrl: '' });
 
@@ -461,13 +481,12 @@
           };
         });
 
-        // 儲存與快取機制
         const saveLocalAndCloud = async () => { 
           const payload = {
             records: records.value, tags: tags.value, teacherList: teacherList.value, 
             examSchedules: examSchedules.value, rotationDuties: rotationDuties.value
           };
-          localStorage.setItem('ADMIN_APP_DATA_V10', JSON.stringify(payload));
+          localStorage.setItem('ADMIN_APP_DATA_V11', JSON.stringify(payload));
           syncStatusText.value = '已暫存至本機'; 
           
           if (!GAS_API_URL) return;
@@ -489,7 +508,7 @@
         };
 
         const fetchCloudData = async () => {
-          const cached = localStorage.getItem('ADMIN_APP_DATA_V10');
+          const cached = localStorage.getItem('ADMIN_APP_DATA_V11');
           if (cached) {
             const data = JSON.parse(cached);
             if (data.records) records.value = data.records;
@@ -519,31 +538,54 @@
           }
         };
 
-        // 標籤功能
         const addTag = (t, v) => { tags.value[t].push(v); saveLocalAndCloud(); };
         const editTag = (t, o) => { tags.value[t] = tags.value[t].map(x => x === o.oldVal ? o.newVal : x); saveLocalAndCloud(); };
         const removeTag = (t, v) => { tags.value[t] = tags.value[t].filter(x => x !== v); saveLocalAndCloud(); };
         
-        // 教師名單功能
         const promptAddTeacher = () => { const v = prompt('新增出題老師姓名:'); if(v && v.trim()) { teacherList.value.push(v.trim()); saveLocalAndCloud(); } };
         const promptEditTeacher = (o) => { const n = prompt('修改出題老師姓名:', o); if(n && n.trim() !== o) { teacherList.value = teacherList.value.map(x => x === o ? n.trim() : x); saveLocalAndCloud(); } };
         const promptRemoveTeacher = (v) => { if(confirm(`確定刪除 ${v}？`)) { teacherList.value = teacherList.value.filter(x => x !== v); saveLocalAndCloud(); } };
         
-        // 快填功能
         const activeTarget = ref(null);
         const setActiveTarget = (obj, field) => { activeTarget.value = { obj, field }; };
         const fillActiveInput = (t) => { if(activeTarget.value && !isManagingTeacherTags.value) { activeTarget.value.obj[activeTarget.value.field] = t; saveLocalAndCloud(); } };
         const assignTeacher = (obj, field, e) => { if(e.target.value) { obj[field] = e.target.value; saveLocalAndCloud(); e.target.value = ''; } };
 
-        // 定期出題與輪替功能
         const addExamSchedule = () => { examSchedules.value.unshift({ id: 'EXAM_' + Date.now(), year: '', midChinese: '', finalChinese: '', midMath: '', finalMath: '' }); saveLocalAndCloud(); };
         const removeExamSchedule = (idx) => { if(confirm('確定刪除此學年分配表？')) { examSchedules.value.splice(idx, 1); saveLocalAndCloud(); } };
-        const promptAddDuty = () => { const v = prompt('請輸入要輪流的工作名稱:'); if(v && v.trim()) { rotationDuties.value.push({ id: 'DUTY_' + Date.now(), title: v.trim(), members: [], newMemberInput: '' }); saveLocalAndCloud(); } };
+        
+        // --- ★ 輪流工作功能強化 (加入修改名稱與日期機制) ---
+        const promptAddDuty = () => { 
+          const title = prompt('請輸入要輪流的工作名稱：'); 
+          if(title && title.trim()) { 
+            rotationDuties.value.push({ id: 'DUTY_' + Date.now(), title: title.trim(), members: [], newMemberInput: '', newMemberDate: '' }); 
+            saveLocalAndCloud(); 
+          } 
+        };
+        
+        const promptEditDutyTitle = (duty) => {
+          const newTitle = prompt('請修改輪流工作名稱：', duty.title);
+          if (newTitle && newTitle.trim() && newTitle.trim() !== duty.title) {
+            duty.title = newTitle.trim();
+            saveLocalAndCloud();
+          }
+        };
+
         const deleteDuty = (id) => { if(confirm('確定刪除此輪流工作？')) { rotationDuties.value = rotationDuties.value.filter(x => x.id !== id); saveLocalAndCloud(); } };
-        const addDutyMember = (d) => { if(d.newMemberInput && d.newMemberInput.trim()) { d.members.push(d.newMemberInput.trim()); d.newMemberInput = ''; saveLocalAndCloud(); } };
+        
+        const addDutyMember = (d) => { 
+          if(d.newMemberInput && d.newMemberInput.trim()) { 
+            d.members.push({
+              name: d.newMemberInput.trim(),
+              date: d.newMemberDate ? d.newMemberDate.trim() : ''
+            }); 
+            d.newMemberInput = ''; 
+            d.newMemberDate = '';
+            saveLocalAndCloud(); 
+          } 
+        };
         const removeDutyMember = (d, idx) => { d.members.splice(idx, 1); saveLocalAndCloud(); };
 
-        // 案件功能
         const localAiRefine = () => {
           if (!form.value.description) return alert('請先輸入說明草稿！');
           let text = form.value.description;
@@ -579,7 +621,7 @@
           teacherList, isManagingTeacherTags, promptAddTeacher, promptEditTeacher, promptRemoveTeacher,
           activeTarget, setActiveTarget, fillActiveInput, assignTeacher,
           examSchedules, addExamSchedule, removeExamSchedule,
-          rotationDuties, promptAddDuty, deleteDuty, addDutyMember, removeDutyMember,
+          rotationDuties, promptAddDuty, promptEditDutyTitle, deleteDuty, addDutyMember, removeDutyMember,
           form, localAiRefine, handleSubmitRecord, handleUpdateRecord, updateRecordLight, deleteRecord, saveLocalAndCloud, records
         };
       }
