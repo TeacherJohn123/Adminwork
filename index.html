@@ -64,7 +64,7 @@
       </header>
 
       <!-- 內容動態切換區 -->
-      <div class="p-8 max-w-5xl w-full mx-auto">
+      <div class="p-8 max-w-6xl w-full mx-auto">
         
         <!-- 一、重要公文 -->
         <section v-if="currentTab === 'official_doc'" class="bg-white rounded-xl shadow-sm p-6 border">
@@ -147,61 +147,73 @@
           </form>
         </section>
 
-        <!-- 三、學年出題記錄 -->
+        <!-- 三、學年出題記錄 (交乘矩陣表格) -->
         <section v-else-if="currentTab === 'exam_record'" class="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 class="text-lg font-bold mb-4 text-slate-700 border-b pb-2">➕ 新增學年出題記錄</h2>
-          <form @submit.prevent="submitForm('學年出題記錄', examForm)" class="space-y-4">
-            <div class="grid grid-cols-3 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">學期</label>
-                <select v-model="examForm.semester" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
-                  <option value="上學期">上學期</option>
-                  <option value="下學期">下學期</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">科目</label>
-                <select v-model="examForm.subjectName" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
-                  <option value="國語">國語</option>
-                  <option value="數學">數學</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">考試類別</label>
-                <select v-model="examForm.examType" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
-                  <option value="期中考">期中考</option>
-                  <option value="期末考">期末考</option>
-                </select>
-              </div>
-            </div>
+          <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h2 class="text-lg font-bold text-slate-700">📋 學年出題分工與記錄總覽</h2>
+            <span class="text-xs text-slate-500 font-medium">提示：可直接於表格內下拉選擇出題老師與填寫範圍</span>
+          </div>
 
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">出題老師</label>
-                <select v-model="examForm.teacher" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
-                  <option v-for="t in tagOptions.teachers" :key="t" :value="t">{{ t }}</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">考試範圍 / 單元</label>
-                <input type="text" v-model="examForm.range" placeholder="例如：第1課 ~ 第4課" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
-              </div>
-            </div>
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse border border-slate-200 text-sm">
+              <thead>
+                <tr class="bg-slate-100 text-slate-700 text-center">
+                  <th class="border border-slate-200 p-3 w-28">學期</th>
+                  <th class="border border-slate-200 p-3 w-28">科目</th>
+                  <th class="border border-slate-200 p-3 w-1/3">期中考 (出題老師 / 範圍 / 連結)</th>
+                  <th class="border border-slate-200 p-3 w-1/3">期末考 (出題老師 / 範圍 / 連結)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, index) in examMatrix" :key="index" class="hover:bg-slate-50">
+                  <td class="border border-slate-200 p-3 text-center font-bold text-slate-600">{{ row.semester }}</td>
+                  <td class="border border-slate-200 p-3 text-center font-bold text-sky-600">{{ row.subject }}</td>
+                  
+                  <!-- 期中考格 -->
+                  <td class="border border-slate-200 p-3 space-y-2 bg-sky-50/20">
+                    <div class="flex items-center space-x-2">
+                      <span class="text-xs text-slate-500 w-12">出題:</span>
+                      <select v-model="row.midtermTeacher" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
+                        <option v-for="t in tagOptions.teachers" :key="t" :value="t">{{ t }}</option>
+                      </select>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <span class="text-xs text-slate-500 w-12">範圍:</span>
+                      <input type="text" v-model="row.midtermRange" placeholder="例如: 第1-4課" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <span class="text-xs text-slate-500 w-12">連結:</span>
+                      <input type="url" v-model="row.midtermUrl" placeholder="雲端試卷網址" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
+                    </div>
+                  </td>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">備註說明</label>
-              <textarea rows="2" v-model="examForm.description" placeholder="出題注意事項或方向..." class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500"></textarea>
-            </div>
+                  <!-- 期末考格 -->
+                  <td class="border border-slate-200 p-3 space-y-2 bg-amber-50/20">
+                    <div class="flex items-center space-x-2">
+                      <span class="text-xs text-slate-500 w-12">出題:</span>
+                      <select v-model="row.finalTeacher" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
+                        <option v-for="t in tagOptions.teachers" :key="t" :value="t">{{ t }}</option>
+                      </select>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <span class="text-xs text-slate-500 w-12">範圍:</span>
+                      <input type="text" v-model="row.finalRange" placeholder="例如: 第5-8課" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <span class="text-xs text-slate-500 w-12">連結:</span>
+                      <input type="url" v-model="row.finalUrl" placeholder="雲端試卷網址" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">試卷雲端硬碟連結</label>
-              <input type="url" v-model="examForm.driveUrl" placeholder="https://drive.google.com/..." class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
-            </div>
-
-            <button type="submit" class="bg-sky-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
-              儲存出題記錄
+          <div class="mt-6 text-right">
+            <button @click="submitExamMatrix" class="bg-sky-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
+              儲存全學年出題分工表
             </button>
-          </form>
+          </div>
         </section>
 
         <!-- 四~七 待討論分頁 -->
@@ -296,30 +308,32 @@
         const currentTab = ref('official_doc');
         const showTagModal = ref(false);
 
-        // 可自由新增刪除的標籤選項清單
         const tagOptions = ref({
           departments: ['教務處', '學務處', '總務處', '輔導室'],
           assignees: ['王老師', '李老師', '陳老師'],
           teachers: ['王老師', '李老師', '陳老師', '林老師']
         });
 
-        // 上方全域選取狀態
         const globalSettings = ref({
           department: '教務處',
           assignee: '王老師'
         });
 
-        // 各表單資料
         const docForm = ref({ date: '', docNo: '', subject: '', description: '', driveUrl: '' });
         const meetingForm = ref({ date: '', subject: '', description: '', reply: '', driveUrl: '', status: 'yellow' });
-        const examForm = ref({ semester: '上學期', subjectName: '國語', examType: '期中考', teacher: '王老師', range: '', description: '', driveUrl: '' });
 
-        // 新增標籤輸入暫存
+        // 學年出題紀錄矩陣預設資料
+        const examMatrix = ref([
+          { semester: '上學期', subject: '國語', midtermTeacher: '王老師', midtermRange: '', midtermUrl: '', finalTeacher: '李老師', finalRange: '', finalUrl: '' },
+          { semester: '上學期', subject: '數學', midtermTeacher: '陳老師', midtermRange: '', midtermUrl: '', finalTeacher: '林老師', finalRange: '', finalUrl: '' },
+          { semester: '下學期', subject: '國語', midtermTeacher: '王老師', midtermRange: '', midtermUrl: '', finalTeacher: '李老師', finalRange: '', finalUrl: '' },
+          { semester: '下學期', subject: '數學', midtermTeacher: '陳老師', midtermRange: '', midtermUrl: '', finalTeacher: '林老師', finalRange: '', finalUrl: '' }
+        ]);
+
         const newDeptInput = ref('');
         const newAssigneeInput = ref('');
         const newTeacherInput = ref('');
 
-        // 新增標籤邏輯
         const addTag = (category, value) => {
           if (!value || !value.trim()) return;
           if (tagOptions.value[category].includes(value.trim())) {
@@ -329,7 +343,6 @@
           tagOptions.value[category].push(value.trim());
         };
 
-        // 刪除標籤邏輯
         const removeTag = (category, index) => {
           if (tagOptions.value[category].length <= 1) {
             alert('至少必須保留一個標籤！');
@@ -338,14 +351,19 @@
           tagOptions.value[category].splice(index, 1);
         };
 
-        // 通用送出函式（結合上方全域標籤與表單內容）
         const submitForm = (formName, formData) => {
+          const finalData = { ...globalSettings.value, ...formData };
+          console.log(`送出 [${formName}] 資料：`, finalData);
+          alert(`【模擬】${formName} 資料已暫存！`);
+        };
+
+        const submitExamMatrix = () => {
           const finalData = {
             ...globalSettings.value,
-            ...formData
+            matrixData: examMatrix.value
           };
-          console.log(`送出 [${formName}] 資料：`, finalData);
-          alert(`【模擬】${formName} 資料已暫存！\n帶入單位：${finalData.department}\n帶入人員：${finalData.assignee}`);
+          console.log("送出學年出題矩陣：", finalData);
+          alert("【模擬】全學年出題分工表已成功暫存！");
         };
 
         return {
@@ -356,13 +374,14 @@
           globalSettings,
           docForm,
           meetingForm,
-          examForm,
+          examMatrix,
           newDeptInput,
           newAssigneeInput,
           newTeacherInput,
           addTag,
           removeTag,
-          submitForm
+          submitForm,
+          submitExamMatrix
         };
       }
     }).mount('#app');
