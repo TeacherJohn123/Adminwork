@@ -283,11 +283,59 @@
           </div>
         </section>
 
-        <!-- 五~七 待討論分頁 -->
-        <section v-else class="bg-white rounded-xl shadow-sm p-12 text-center border">
-          <div class="text-4xl mb-3">🚧</div>
-          <h2 class="text-xl font-bold text-slate-700 mb-2">{{ tabs.find(t => t.id === currentTab).name }}</h2>
-          <p class="text-gray-500 text-sm">此功能模組正在規劃中，稍後我們將一起討論並建置此區塊！</p>
+        <!-- 五、畢業旅行 / 六、畢業紀念冊 / 七、畢業典禮 (共用會議與決議模組) -->
+        <section v-else-if="['graduation_trip', 'graduation_album', 'graduation_ceremony'].includes(currentTab)" class="bg-white rounded-xl shadow-sm p-6 border space-y-6">
+          <div class="flex justify-between items-center border-b pb-3">
+            <div class="flex items-center space-x-3">
+              <h2 class="text-lg font-bold text-slate-700">📂 {{ tabs.find(t => t.id === currentTab).name }} - 會議與決議紀錄</h2>
+              <div class="flex items-center space-x-2 bg-sky-50 border border-sky-200 px-3 py-1 rounded-lg">
+                <label class="text-xs font-bold text-sky-700">檢視學年:</label>
+                <select v-model="selectedSchoolYear" class="text-sm font-bold text-sky-800 bg-transparent focus:outline-none cursor-pointer">
+                  <option v-for="sy in tagOptions.schoolYears" :key="sy" :value="sy">{{ sy }}</option>
+                </select>
+              </div>
+            </div>
+            <button @click="addGraduationMeeting(currentTab)" class="bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
+              ＋ 新增會議紀錄
+            </button>
+          </div>
+
+          <!-- 會議紀錄卡片列表 -->
+          <div class="space-y-4">
+            <div v-for="(meeting, mIndex) in graduationMeetings[currentTab]" :key="mIndex" class="border rounded-xl p-5 bg-slate-50/50 shadow-sm space-y-4">
+              <div class="flex justify-between items-center border-b pb-2">
+                <div class="flex items-center space-x-3">
+                  <input type="date" v-model="meeting.date" class="border rounded px-2 py-1 text-sm bg-white font-medium">
+                  <input type="text" v-model="meeting.title" placeholder="會議主旨 / 討論主題..." class="border rounded px-3 py-1 text-sm bg-white font-bold w-72">
+                </div>
+                <button @click="removeGraduationMeeting(currentTab, mIndex)" class="text-red-500 hover:text-red-700 text-xs font-bold px-2.5 py-1 rounded bg-white border hover:bg-red-50">
+                  刪除此會議紀錄
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">📝 會議決議事項</label>
+                  <textarea rows="3" v-model="meeting.resolution" placeholder="請輸入會議決議內容..." class="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-sky-500"></textarea>
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-600 mb-1">🔗 雲端檔案 / 資料夾路徑連結</label>
+                  <input type="url" v-model="meeting.driveUrl" placeholder="https://drive.google.com/..." class="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-sky-500 mb-2">
+                  <p class="text-xs text-slate-400">可放置相關企劃書、報價單或相片雲端資料夾網址。</p>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="graduationMeetings[currentTab].length === 0" class="text-center py-10 text-gray-400 text-sm">
+              目前尚無會議紀錄，點擊右上角「＋ 新增會議紀錄」開始新增！
+            </div>
+          </div>
+
+          <div class="text-right pt-2">
+            <button @click="submitGraduationData(currentTab)" class="bg-sky-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
+              儲存 [{{ selectedSchoolYear }}] {{ tabs.find(t => t.id === currentTab).name }}紀錄
+            </button>
+          </div>
         </section>
 
       </div>
@@ -450,6 +498,27 @@
         ]);
         const newDutyItemInput = ref('');
 
+        // 五、六、七 畢業系列會議紀錄狀態
+        const graduationMeetings = ref({
+          graduation_trip: [
+            { date: '', title: '第一次畢旅籌備會議', resolution: '決議前往南部三天兩夜，並由 A 廠商進行報價評估。', driveUrl: '' }
+          ],
+          graduation_album: [
+            { date: '', title: '畢業紀念冊廠商評選會議', resolution: '決議採納 B 廠商之美編版型與報價方案。', driveUrl: '' }
+          ],
+          graduation_ceremony: [
+            { date: '', title: '畢業典禮流程協調會', resolution: '決議典禮日期與各班表演時間分配。', driveUrl: '' }
+          ]
+        });
+
+        const addGraduationMeeting = (type) => {
+          graduationMeetings.value[type].push({ date: '', title: '', resolution: '', driveUrl: '' });
+        };
+
+        const removeGraduationMeeting = (type, index) => {
+          graduationMeetings.value[type].splice(index, 1);
+        };
+
         const addDutyItem = () => {
           if (!newDutyItemInput.value.trim()) return;
           dutyItems.value.push({
@@ -493,13 +562,17 @@
         const submitForm = (formName, formData) => { alert(`【模擬】${formName} 資料已暫存！`); };
         const submitExamMatrix = () => { alert(`【模擬】[${selectedSchoolYear.value}] 全學年出題分工表已成功暫存！`); };
         const submitDutyRoster = () => { alert(`【模擬】[${selectedSchoolYear.value}] 學年工作輪流與分工表已成功暫存！`); };
+        const submitGraduationData = (type) => {
+          const typeName = tabs.value.find(t => t.id === type).name;
+          alert(`【模擬】[${selectedSchoolYear.value}] ${typeName} 會議與決議紀錄已成功暫存！`);
+        };
 
         return {
           tabs, currentTab, showTagModal, tagOptions, selectedSchoolYear, globalSettings,
-          docForm, meetingForm, examMatrix, dutyItems, newDutyItemInput,
+          docForm, meetingForm, examMatrix, dutyItems, newDutyItemInput, graduationMeetings,
           newSchoolYearInput, newDeptInput, newAssigneeInput, newTeacherInput, newDutyMemberInput,
-          addDutyItem, removeDutyItem, addPeriod, removePeriod, addTag, removeTag,
-          submitForm, submitExamMatrix, submitDutyRoster
+          addDutyItem, removeDutyItem, addPeriod, removePeriod, addGraduationMeeting, removeGraduationMeeting,
+          addTag, removeTag, submitForm, submitExamMatrix, submitDutyRoster, submitGraduationData
         };
       }
     }).mount('#app');
