@@ -36,7 +36,7 @@
     <!-- 右側主要內容區 Main Content -->
     <main class="flex-1 flex flex-col overflow-y-auto">
       
-      <!-- 上方頂部列 (包含可自由編輯/刪除的標籤) -->
+      <!-- 上方頂部列 -->
       <header class="bg-white shadow-sm px-8 py-4 flex justify-between items-center border-b">
         <h1 class="text-xl font-bold text-slate-700">
           {{ tabs.find(t => t.id === currentTab).name }}
@@ -56,7 +56,6 @@
               <option v-for="person in tagOptions.assignees" :key="person" :value="person">{{ person }}</option>
             </select>
           </div>
-          <!-- 開啟標籤管理按鈕 -->
           <button @click="showTagModal = true" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-2.5 py-1.5 rounded transition-colors font-medium">
             ⚙️ 編輯標籤
           </button>
@@ -159,7 +158,6 @@
                 </select>
               </div>
             </div>
-            <span class="text-xs text-slate-500 font-medium">提示：可直接於表格內下拉選擇出題老師與填寫範圍</span>
           </div>
 
           <div class="overflow-x-auto">
@@ -222,7 +220,7 @@
           </div>
         </section>
 
-        <!-- 四、學年工作輪流紀錄 (時期與負責老師樹狀結構) -->
+        <!-- 四、學年工作輪流紀錄 -->
         <section v-else-if="currentTab === 'duty_roster'" class="bg-white rounded-xl shadow-sm p-6 border space-y-6">
           <div class="flex justify-between items-center border-b pb-3">
             <div class="flex items-center space-x-3">
@@ -234,7 +232,6 @@
                 </select>
               </div>
             </div>
-            <!-- 新增工作項目 -->
             <div class="flex items-center space-x-2">
               <input type="text" v-model="newDutyItemInput" placeholder="新增工作項目名稱..." class="border rounded px-3 py-1.5 text-sm w-48">
               <button @click="addDutyItem" class="bg-sky-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-sky-700 transition-colors">
@@ -243,61 +240,45 @@
             </div>
           </div>
 
-          <!-- 輪流工作清單 (呈現工作項目底下帶有多個「時期 - 負責老師」) -->
           <div class="space-y-4">
             <div v-for="(item, itemIndex) in dutyItems" :key="itemIndex" class="border rounded-xl p-5 bg-slate-50/50 shadow-sm space-y-3">
-              
-              <!-- 工作項目標題列 -->
               <div class="flex justify-between items-center border-b pb-2">
-                <div class="flex items-center space-x-3">
-                  <span class="text-base font-bold text-slate-800 bg-sky-100 text-sky-800 px-3 py-1 rounded-lg">
-                    📌 {{ item.name }}
-                  </span>
-                </div>
+                <span class="text-base font-bold text-slate-800 bg-sky-100 text-sky-800 px-3 py-1 rounded-lg">
+                  📌 {{ item.name }}
+                </span>
                 <button @click="removeDutyItem(itemIndex)" class="text-red-500 hover:text-red-700 text-xs font-bold px-2.5 py-1 rounded bg-white border hover:bg-red-50">
                   刪除此工作項目
                 </button>
               </div>
 
-              <!-- 該工作項目底下的「時期 - 負責老師」列表 -->
               <div class="pl-4 space-y-2">
                 <div class="text-xs font-semibold text-slate-500 mb-1">輪流時期與負責老師分配：</div>
                 
                 <div v-for="(period, periodIndex) in item.periods" :key="periodIndex" class="flex items-center space-x-3 bg-white p-2.5 rounded-lg border">
                   <span class="text-slate-400 font-bold text-sm">└─</span>
-                  
-                  <!-- 時期輸入 (例如：第一學期、第1-4週、9月份...) -->
                   <div class="flex items-center space-x-1.5 flex-1">
                     <label class="text-xs text-slate-500 w-12 font-medium">時期:</label>
-                    <input type="text" v-model="period.timeSlot" placeholder="例如: 第一學期 / 第1-5週" class="flex-1 border rounded px-2.5 py-1 text-sm bg-slate-50 focus:bg-white">
+                    <input type="text" v-model="period.timeSlot" placeholder="例如: 第一學期" class="flex-1 border rounded px-2.5 py-1 text-sm bg-slate-50 focus:bg-white">
                   </div>
-
-                  <!-- 負責老師下拉選單 -->
                   <div class="flex items-center space-x-1.5 flex-1">
                     <label class="text-xs text-slate-500 w-16 font-medium">負責老師:</label>
                     <select v-model="period.assignee" class="flex-1 border rounded px-2.5 py-1 text-sm bg-white font-medium text-sky-700">
                       <option v-for="member in tagOptions.dutyMembers" :key="member" :value="member">{{ member }}</option>
                     </select>
                   </div>
-
-                  <!-- 刪除該時期按鈕 -->
-                  <button @click="removePeriod(itemIndex, periodIndex)" class="text-gray-400 hover:text-red-600 font-bold text-sm px-2">
-                    ✕
-                  </button>
+                  <button @click="removePeriod(itemIndex, periodIndex)" class="text-gray-400 hover:text-red-600 font-bold text-sm px-2">✕</button>
                 </div>
 
-                <!-- 新增時期按鈕 -->
                 <button @click="addPeriod(itemIndex)" class="text-xs text-sky-600 hover:text-sky-800 font-bold pt-1 pl-6 flex items-center space-x-1">
                   <span>＋ 新增一個時期與負責老師</span>
                 </button>
               </div>
-
             </div>
           </div>
 
           <div class="text-right pt-2">
             <button @click="submitDutyRoster" class="bg-sky-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
-              儲存 [{{ selectedSchoolYear }] 學年工作輪流與分工表
+              儲存 [{{ selectedSchoolYear }}] 學年工作輪流與分工表
             </button>
           </div>
         </section>
@@ -312,7 +293,7 @@
       </div>
     </main>
 
-    <!-- 標籤管理彈跳視窗 Modal -->
+    <!-- 標籤管理 Modal -->
     <div v-if="showTagModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-xl space-y-6 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center border-b pb-3">
@@ -320,7 +301,6 @@
           <button @click="showTagModal = false" class="text-gray-400 hover:text-gray-600 font-bold">✕</button>
         </div>
 
-        <!-- 編輯輪流成員標籤 -->
         <div>
           <label class="block text-sm font-bold text-slate-600 mb-2">輪流成員標籤 (老師)</label>
           <div class="flex flex-wrap gap-2 mb-2 max-h-36 overflow-y-auto p-1 border rounded bg-slate-50">
@@ -336,7 +316,6 @@
           </div>
         </div>
 
-        <!-- 編輯學年度標籤 -->
         <div>
           <label class="block text-sm font-bold text-slate-600 mb-2">學年度標籤</label>
           <div class="flex flex-wrap gap-2 mb-2">
@@ -352,7 +331,6 @@
           </div>
         </div>
 
-        <!-- 編輯承辦單位 -->
         <div>
           <label class="block text-sm font-bold text-slate-600 mb-2">承辦單位標籤</label>
           <div class="flex flex-wrap gap-2 mb-2">
@@ -368,7 +346,6 @@
           </div>
         </div>
 
-        <!-- 編輯承辦人員 -->
         <div>
           <label class="block text-sm font-bold text-slate-600 mb-2">承辦人員標籤</label>
           <div class="flex flex-wrap gap-2 mb-2">
@@ -384,7 +361,6 @@
           </div>
         </div>
 
-        <!-- 編輯出題老師 -->
         <div>
           <label class="block text-sm font-bold text-slate-600 mb-2">學年出題老師標籤</label>
           <div class="flex flex-wrap gap-2 mb-2">
@@ -426,7 +402,6 @@
         const currentTab = ref('official_doc');
         const showTagModal = ref(false);
 
-        // 標籤選項清單
         const tagOptions = ref({
           schoolYears: ['114學年度', '115學年度', '116學年度'],
           departments: ['教務處', '學務處', '總務處', '輔導室'],
@@ -439,11 +414,7 @@
         });
 
         const selectedSchoolYear = ref('114學年度');
-
-        const globalSettings = ref({
-          department: '教務處',
-          assignee: '王老師'
-        });
+        const globalSettings = ref({ department: '教務處', assignee: '王老師' });
 
         const docForm = ref({ date: '', docNo: '', subject: '', description: '', driveUrl: '' });
         const meetingForm = ref({ date: '', subject: '', description: '', reply: '', driveUrl: '', status: 'yellow' });
@@ -455,7 +426,6 @@
           { semester: '下學期', subject: '數學', midtermTeacher: '陳老師', midtermRange: '', midtermUrl: '', finalTeacher: '林老師', finalRange: '', finalUrl: '' }
         ]);
 
-        // 四、學年工作輪流紀錄 (支援多個時期與負責老師)
         const dutyItems = ref([
           {
             name: '拆車',
@@ -480,32 +450,21 @@
         ]);
         const newDutyItemInput = ref('');
 
-        // 新增工作項目
         const addDutyItem = () => {
           if (!newDutyItemInput.value.trim()) return;
           dutyItems.value.push({
             name: newDutyItemInput.value.trim(),
-            periods: [
-              { timeSlot: '全學年', assignee: tagOptions.value.dutyMembers[0] || '' }
-            ]
+            periods: [{ timeSlot: '全學年', assignee: tagOptions.value.dutyMembers[0] || '' }]
           });
           newDutyItemInput.value = '';
         };
 
-        // 刪除工作項目
-        const removeDutyItem = (index) => {
-          dutyItems.value.splice(index, 1);
-        };
+        const removeDutyItem = (index) => { dutyItems.value.splice(index, 1); };
 
-        // 在指定工作項目中新增一個時期
         const addPeriod = (itemIndex) => {
-          dutyItems.value[itemIndex].periods.push({
-            timeSlot: '',
-            assignee: tagOptions.value.dutyMembers[0] || ''
-          });
+          dutyItems.value[itemIndex].periods.push({ timeSlot: '', assignee: tagOptions.value.dutyMembers[0] || '' });
         };
 
-        // 刪除指定工作項目中的某個時期
         const removePeriod = (itemIndex, periodIndex) => {
           if (dutyItems.value[itemIndex].periods.length <= 1) {
             alert('每個工作項目至少須保留一個時期紀錄！');
@@ -514,7 +473,6 @@
           dutyItems.value[itemIndex].periods.splice(periodIndex, 1);
         };
 
-        // 新增標籤輸入暫存
         const newSchoolYearInput = ref('');
         const newDeptInput = ref('');
         const newAssigneeInput = ref('');
@@ -523,73 +481,25 @@
 
         const addTag = (category, value) => {
           if (!value || !value.trim()) return;
-          if (tagOptions.value[category].includes(value.trim())) {
-            alert('此標籤已存在！');
-            return;
-          }
+          if (tagOptions.value[category].includes(value.trim())) { alert('此標籤已存在！'); return; }
           tagOptions.value[category].push(value.trim());
         };
 
         const removeTag = (category, index) => {
-          if (tagOptions.value[category].length <= 1) {
-            alert('至少必須保留一個標籤！');
-            return;
-          }
+          if (tagOptions.value[category].length <= 1) { alert('至少必須保留一個標籤！'); return; }
           tagOptions.value[category].splice(index, 1);
         };
 
-        const submitForm = (formName, formData) => {
-          const finalData = { ...globalSettings.value, ...formData };
-          console.log(`送出 [${formName}] 資料：`, finalData);
-          alert(`【模擬】${formName} 資料已暫存！`);
-        };
-
-        const submitExamMatrix = () => {
-          const finalData = {
-            ...globalSettings.value,
-            schoolYear: selectedSchoolYear.value,
-            matrixData: examMatrix.value
-          };
-          console.log("送出學年出題矩陣：", finalData);
-          alert(`【模擬】[${selectedSchoolYear.value}] 全學年出題分工表已成功暫存！`);
-        };
-
-        const submitDutyRoster = () => {
-          const finalData = {
-            ...globalSettings.value,
-            schoolYear: selectedSchoolYear.value,
-            dutyData: dutyItems.value
-          };
-          console.log("送出學年輪流工作表：", finalData);
-          alert(`【模擬】[${selectedSchoolYear.value}] 學年工作輪流與分工表已成功暫存！`);
-        };
+        const submitForm = (formName, formData) => { alert(`【模擬】${formName} 資料已暫存！`); };
+        const submitExamMatrix = () => { alert(`【模擬】[${selectedSchoolYear.value}] 全學年出題分工表已成功暫存！`); };
+        const submitDutyRoster = () => { alert(`【模擬】[${selectedSchoolYear.value}] 學年工作輪流與分工表已成功暫存！`); };
 
         return {
-          tabs,
-          currentTab,
-          showTagModal,
-          tagOptions,
-          selectedSchoolYear,
-          globalSettings,
-          docForm,
-          meetingForm,
-          examMatrix,
-          dutyItems,
-          newDutyItemInput,
-          newSchoolYearInput,
-          newDeptInput,
-          newAssigneeInput,
-          newTeacherInput,
-          newDutyMemberInput,
-          addDutyItem,
-          removeDutyItem,
-          addPeriod,
-          removePeriod,
-          addTag,
-          removeTag,
-          submitForm,
-          submitExamMatrix,
-          submitDutyRoster
+          tabs, currentTab, showTagModal, tagOptions, selectedSchoolYear, globalSettings,
+          docForm, meetingForm, examMatrix, dutyItems, newDutyItemInput,
+          newSchoolYearInput, newDeptInput, newAssigneeInput, newTeacherInput, newDutyMemberInput,
+          addDutyItem, removeDutyItem, addPeriod, removePeriod, addTag, removeTag,
+          submitForm, submitExamMatrix, submitDutyRoster
         };
       }
     }).mount('#app');
