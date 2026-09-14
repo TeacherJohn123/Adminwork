@@ -222,56 +222,82 @@
           </div>
         </section>
 
-        <!-- 四、學年工作輪流紀錄 -->
+        <!-- 四、學年工作輪流紀錄 (時期與負責老師樹狀結構) -->
         <section v-else-if="currentTab === 'duty_roster'" class="bg-white rounded-xl shadow-sm p-6 border space-y-6">
           <div class="flex justify-between items-center border-b pb-3">
-            <h2 class="text-lg font-bold text-slate-700">🔄 學年工作輪流與分工一覽表</h2>
-            <!-- 新增輪流項目快速列 -->
+            <div class="flex items-center space-x-3">
+              <h2 class="text-lg font-bold text-slate-700">🔄 學年工作輪流與分工一覽表</h2>
+              <div class="flex items-center space-x-2 bg-sky-50 border border-sky-200 px-3 py-1 rounded-lg">
+                <label class="text-xs font-bold text-sky-700">檢視學年:</label>
+                <select v-model="selectedSchoolYear" class="text-sm font-bold text-sky-800 bg-transparent focus:outline-none cursor-pointer">
+                  <option v-for="sy in tagOptions.schoolYears" :key="sy" :value="sy">{{ sy }}</option>
+                </select>
+              </div>
+            </div>
+            <!-- 新增工作項目 -->
             <div class="flex items-center space-x-2">
-              <input type="text" v-model="newDutyItemInput" placeholder="自訂輪流工作項目..." class="border rounded px-3 py-1.5 text-sm w-48">
+              <input type="text" v-model="newDutyItemInput" placeholder="新增工作項目名稱..." class="border rounded px-3 py-1.5 text-sm w-48">
               <button @click="addDutyItem" class="bg-sky-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-sky-700 transition-colors">
-                ＋ 新增項目
+                ＋ 新增工作項目
               </button>
             </div>
           </div>
 
-          <!-- 輪流紀錄表格 -->
-          <div class="overflow-x-auto">
-            <table class="w-full border-collapse border border-slate-200 text-sm">
-              <thead>
-                <tr class="bg-slate-100 text-slate-700 text-center">
-                  <th class="border border-slate-200 p-3 w-48">工作項目</th>
-                  <th class="border border-slate-200 p-3 w-64">目前輪值人員 / 負責老師</th>
-                  <th class="border border-slate-200 p-3">備註說明 / 輪流規則</th>
-                  <th class="border border-slate-200 p-3 w-20">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, index) in dutyItems" :key="index" class="hover:bg-slate-50">
-                  <td class="border border-slate-200 p-3 font-bold text-slate-700 bg-slate-50/50">
-                    {{ item.name }}
-                  </td>
-                  <td class="border border-slate-200 p-3">
-                    <select v-model="item.assignee" class="w-full border rounded px-2 py-1.5 text-sm bg-white font-medium text-sky-700">
+          <!-- 輪流工作清單 (呈現工作項目底下帶有多個「時期 - 負責老師」) -->
+          <div class="space-y-4">
+            <div v-for="(item, itemIndex) in dutyItems" :key="itemIndex" class="border rounded-xl p-5 bg-slate-50/50 shadow-sm space-y-3">
+              
+              <!-- 工作項目標題列 -->
+              <div class="flex justify-between items-center border-b pb-2">
+                <div class="flex items-center space-x-3">
+                  <span class="text-base font-bold text-slate-800 bg-sky-100 text-sky-800 px-3 py-1 rounded-lg">
+                    📌 {{ item.name }}
+                  </span>
+                </div>
+                <button @click="removeDutyItem(itemIndex)" class="text-red-500 hover:text-red-700 text-xs font-bold px-2.5 py-1 rounded bg-white border hover:bg-red-50">
+                  刪除此工作項目
+                </button>
+              </div>
+
+              <!-- 該工作項目底下的「時期 - 負責老師」列表 -->
+              <div class="pl-4 space-y-2">
+                <div class="text-xs font-semibold text-slate-500 mb-1">輪流時期與負責老師分配：</div>
+                
+                <div v-for="(period, periodIndex) in item.periods" :key="periodIndex" class="flex items-center space-x-3 bg-white p-2.5 rounded-lg border">
+                  <span class="text-slate-400 font-bold text-sm">└─</span>
+                  
+                  <!-- 時期輸入 (例如：第一學期、第1-4週、9月份...) -->
+                  <div class="flex items-center space-x-1.5 flex-1">
+                    <label class="text-xs text-slate-500 w-12 font-medium">時期:</label>
+                    <input type="text" v-model="period.timeSlot" placeholder="例如: 第一學期 / 第1-5週" class="flex-1 border rounded px-2.5 py-1 text-sm bg-slate-50 focus:bg-white">
+                  </div>
+
+                  <!-- 負責老師下拉選單 -->
+                  <div class="flex items-center space-x-1.5 flex-1">
+                    <label class="text-xs text-slate-500 w-16 font-medium">負責老師:</label>
+                    <select v-model="period.assignee" class="flex-1 border rounded px-2.5 py-1 text-sm bg-white font-medium text-sky-700">
                       <option v-for="member in tagOptions.dutyMembers" :key="member" :value="member">{{ member }}</option>
                     </select>
-                  </td>
-                  <td class="border border-slate-200 p-3">
-                    <input type="text" v-model="item.note" placeholder="例如：每週一輪換、需配合處室時間..." class="w-full border rounded px-2 py-1.5 text-sm bg-white">
-                  </td>
-                  <td class="border border-slate-200 p-3 text-center">
-                    <button @click="removeDutyItem(index)" class="text-red-500 hover:text-red-700 text-xs font-bold px-2 py-1 rounded bg-red-50 hover:bg-red-100">
-                      刪除
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  </div>
+
+                  <!-- 刪除該時期按鈕 -->
+                  <button @click="removePeriod(itemIndex, periodIndex)" class="text-gray-400 hover:text-red-600 font-bold text-sm px-2">
+                    ✕
+                  </button>
+                </div>
+
+                <!-- 新增時期按鈕 -->
+                <button @click="addPeriod(itemIndex)" class="text-xs text-sky-600 hover:text-sky-800 font-bold pt-1 pl-6 flex items-center space-x-1">
+                  <span>＋ 新增一個時期與負責老師</span>
+                </button>
+              </div>
+
+            </div>
           </div>
 
           <div class="text-right pt-2">
             <button @click="submitDutyRoster" class="bg-sky-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
-              儲存學年輪流工作表
+              儲存 [{{ selectedSchoolYear }] 學年工作輪流與分工表
             </button>
           </div>
         </section>
@@ -429,28 +455,63 @@
           { semester: '下學期', subject: '數學', midtermTeacher: '陳老師', midtermRange: '', midtermUrl: '', finalTeacher: '林老師', finalRange: '', finalUrl: '' }
         ]);
 
-        // 四、學年工作輪流紀錄預設項目
+        // 四、學年工作輪流紀錄 (支援多個時期與負責老師)
         const dutyItems = ref([
-          { name: '拆車', assignee: '五年一班老師', note: '' },
-          { name: '課後照顧教室', assignee: '五年二班老師', note: '' },
-          { name: '學年會主任', assignee: '五年三班老師', note: '' }
+          {
+            name: '拆車',
+            periods: [
+              { timeSlot: '上學期', assignee: '五年一班老師' },
+              { timeSlot: '下學期', assignee: '五年二班老師' }
+            ]
+          },
+          {
+            name: '課後照顧教室',
+            periods: [
+              { timeSlot: '第一階段 (1-10週)', assignee: '五年三班老師' },
+              { timeSlot: '第二階段 (11-20週)', assignee: '五年四班老師' }
+            ]
+          },
+          {
+            name: '學年會主任',
+            periods: [
+              { timeSlot: '全學年', assignee: '五年五班老師' }
+            ]
+          }
         ]);
         const newDutyItemInput = ref('');
 
-        // 新增輪流工作項目
+        // 新增工作項目
         const addDutyItem = () => {
           if (!newDutyItemInput.value.trim()) return;
           dutyItems.value.push({
             name: newDutyItemInput.value.trim(),
-            assignee: tagOptions.value.dutyMembers[0] || '',
-            note: ''
+            periods: [
+              { timeSlot: '全學年', assignee: tagOptions.value.dutyMembers[0] || '' }
+            ]
           });
           newDutyItemInput.value = '';
         };
 
-        // 刪除輪流工作項目
+        // 刪除工作項目
         const removeDutyItem = (index) => {
           dutyItems.value.splice(index, 1);
+        };
+
+        // 在指定工作項目中新增一個時期
+        const addPeriod = (itemIndex) => {
+          dutyItems.value[itemIndex].periods.push({
+            timeSlot: '',
+            assignee: tagOptions.value.dutyMembers[0] || ''
+          });
+        };
+
+        // 刪除指定工作項目中的某個時期
+        const removePeriod = (itemIndex, periodIndex) => {
+          if (dutyItems.value[itemIndex].periods.length <= 1) {
+            alert('每個工作項目至少須保留一個時期紀錄！');
+            return;
+          }
+          dutyItems.value[itemIndex].periods.splice(periodIndex, 1);
         };
 
         // 新增標籤輸入暫存
@@ -496,10 +557,11 @@
         const submitDutyRoster = () => {
           const finalData = {
             ...globalSettings.value,
+            schoolYear: selectedSchoolYear.value,
             dutyData: dutyItems.value
           };
           console.log("送出學年輪流工作表：", finalData);
-          alert("【模擬】學年工作輪流紀錄已成功暫存！");
+          alert(`【模擬】[${selectedSchoolYear.value}] 學年工作輪流與分工表已成功暫存！`);
         };
 
         return {
@@ -521,6 +583,8 @@
           newDutyMemberInput,
           addDutyItem,
           removeDutyItem,
+          addPeriod,
+          removePeriod,
           addTag,
           removeTag,
           submitForm,
