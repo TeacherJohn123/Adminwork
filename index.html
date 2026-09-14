@@ -3,608 +3,224 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>行政工作管理與出題分配系統</title>
-  <!-- Vue 3 -->
+  <title>行政工作輔助系統</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Noto Sans TC', sans-serif; }
-  </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased min-h-screen">
-  <div id="app" class="flex flex-col md:flex-row min-h-screen">
+<body class="bg-gray-100 min-h-screen p-6">
+  <div id="app" class="max-w-7xl mx-auto space-y-6">
     
-    <!-- 左側導覽列 (Sidebar) -->
-    <aside class="w-full md:w-72 bg-slate-900 text-slate-200 flex flex-col justify-between shrink-0 shadow-xl overflow-y-auto">
+    <!-- 標題與同步狀態 -->
+    <header class="bg-white rounded-lg shadow p-6 flex justify-between items-center">
       <div>
-        <div class="p-5 border-b border-slate-800">
-          <h1 class="text-lg font-bold text-white flex items-center gap-2">
-            <span>🏫</span> 行政工作管理系統
-          </h1>
-          <p class="text-xs text-slate-400 mt-1">本機快取 ＋ 雲端同步</p>
-        </div>
-
-        <div class="p-3 space-y-1">
-          <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-3 mb-1">主功能區</div>
-          
-          <button @click="activeView = 'records'" :class="['w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer', activeView === 'records' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800']">
-            <span class="flex items-center gap-2"><span>📂</span> 業務案件看板</span>
-            <span class="bg-blue-500/50 px-2 py-0.5 rounded-full text-[10px]">{{ records.length }}</span>
-          </button>
-
-          <button @click="activeView = 'exam'" :class="['w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer', activeView === 'exam' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800']">
-            <span class="flex items-center gap-2"><span>📐</span> 定期評量出題</span>
-            <span class="bg-amber-500/50 px-2 py-0.5 rounded-full text-[10px]">{{ examSchedules.length }} 年</span>
-          </button>
-
-          <button @click="activeView = 'rotation'" :class="['w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition cursor-pointer', activeView === 'rotation' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800']">
-            <span class="flex items-center gap-2"><span>🔄</span> 工作輪流順序登記</span>
-            <span class="bg-indigo-500/50 px-2 py-0.5 rounded-full text-[10px]">{{ rotationDuties.length }} 項</span>
-          </button>
-        </div>
-
-        <nav v-if="activeView === 'records'" class="px-3 pb-3 space-y-1 border-t border-slate-800 pt-3 mt-2">
-          <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-3 my-1">業務分類模組</div>
-          <button v-for="cat in categories" :key="cat.id" @click="currentCategory = cat.id" :class="['w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer', currentCategory === cat.id ? 'bg-slate-800 text-blue-400 font-bold border-l-4 border-blue-500' : 'text-slate-400 hover:bg-slate-800 hover:text-white']">
-            <div class="flex items-center gap-2"><span>{{ cat.icon }}</span><span>{{ cat.name }}</span></div>
-            <span class="text-[10px] px-2 py-0.5 rounded-full" :class="currentCategory === cat.id ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-400'">{{ countByCategory(cat.id) }}</span>
-          </button>
-        </nav>
+        <h1 class="text-2xl font-bold text-gray-800">🏫 行政工作輔助系統</h1>
+        <p class="text-sm text-gray-500 mt-1">本機快取 ＋ 雲端 Drive JSON 雙軌同步</p>
       </div>
-
-      <div class="p-4 border-t border-slate-800 text-xs bg-slate-950/40">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-slate-400">同步狀態</span>
-          <span class="inline-flex items-center gap-1.5 font-medium" :class="{'text-emerald-400': syncStatus === 'synced', 'text-amber-400': syncStatus === 'syncing', 'text-rose-400': syncStatus === 'error'}">
-            <span class="relative flex h-2 w-2">
-              <span v-if="syncStatus === 'syncing'" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2 w-2" :class="{'bg-emerald-500': syncStatus === 'synced', 'bg-amber-500': syncStatus === 'syncing', 'bg-rose-500': syncStatus === 'error'}"></span>
-            </span>
-            {{ syncStatusText }}
-          </span>
-        </div>
-        <button @click="fetchCloudData" :disabled="syncStatus === 'syncing'" class="w-full mt-1 bg-slate-800 hover:bg-slate-700 text-slate-200 py-1.5 px-3 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1.5 border border-slate-700 disabled:opacity-50 cursor-pointer">
-          <span>🔄</span> 手動同步雲端
+      <div class="flex items-center space-x-3">
+        <span class="text-sm font-bold" :class="syncStatusColor">{{ syncStatusText }}</span>
+        <button @click="triggerCloudSync" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg text-sm transition">
+          🔄 強制同步雲端
         </button>
       </div>
-    </aside>
+    </header>
 
-    <!-- 右側主工作區 -->
-    <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full space-y-8 overflow-y-auto">
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
       
-      <!-- 視圖 1：業務案件看板 -->
-      <template v-if="activeView === 'records'">
-        <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
-          <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl font-bold">{{ activeCategory.icon }}</div>
-            <div>
-              <h2 class="text-2xl font-bold text-slate-800">{{ activeCategory.name }}</h2>
-              <p class="text-xs text-slate-500 mt-0.5">案件內容、承辦與負責人員可自創與修訂</p>
-            </div>
-          </div>
-        </header>
+      <!-- 左側：四大模組分類 -->
+      <div class="lg:col-span-1 space-y-2">
+        <div v-for="category in categories" :key="category" 
+             @click="currentCategory = category"
+             class="p-4 rounded-lg cursor-pointer font-bold transition shadow-sm"
+             :class="currentCategory === category ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-indigo-50'">
+          {{ category }}
+        </div>
+      </div>
 
-        <section class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-5">
-          <h3 class="text-base font-bold text-slate-800 flex items-center gap-2"><span>📝</span> 新增【{{ activeCategory.name }}】案件</h3>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <!-- 右側：新增與列表 -->
+      <div class="lg:col-span-3 space-y-6">
+        
+        <!-- 新增案件表單 -->
+        <section class="bg-white rounded-lg shadow p-6 border-t-4 border-indigo-500">
+          <h2 class="text-lg font-bold text-gray-700 mb-4">➕ 新增 [{{ currentCategory }}] 紀錄</h2>
+          <div class="space-y-4">
             <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1.5">日期</label>
-              <input v-model="form.date" type="date" class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition cursor-pointer">
+              <label class="block text-xs font-bold text-gray-600 mb-1">事件主旨</label>
+              <input v-model="newTask.subject" type="text" placeholder="輸入主旨..." class="w-full border p-2 rounded text-sm">
             </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-600 mb-1.5">辦理情形 (燈號進度)</label>
-              <div class="grid grid-cols-3 gap-2">
-                <button type="button" @click="form.lightColor = 'yellow'" :class="['py-2 px-3 rounded-xl text-xs font-bold transition border cursor-pointer', form.lightColor === 'yellow' ? 'bg-amber-50 border-amber-400 text-amber-700' : 'bg-slate-50 border-slate-200 text-slate-600']">🟡 黃燈</button>
-                <button type="button" @click="form.lightColor = 'green'" :class="['py-2 px-3 rounded-xl text-xs font-bold transition border cursor-pointer', form.lightColor === 'green' ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-600']">🟢 綠燈</button>
-                <button type="button" @click="form.lightColor = 'red'" :class="['py-2 px-3 rounded-xl text-xs font-bold transition border cursor-pointer', form.lightColor === 'red' ? 'bg-rose-50 border-rose-400 text-rose-700' : 'bg-slate-50 border-slate-200 text-slate-600']">🔴 紅燈</button>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">承辦單位</label>
+                <input v-model="newTask.unit" type="text" placeholder="例：教務處" class="w-full border p-2 rounded text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1">負責人</label>
+                <input v-model="newTask.person" type="text" placeholder="例：王小明" class="w-full border p-2 rounded text-sm">
               </div>
             </div>
-          </div>
-
-          <div class="space-y-4 pt-2 border-t border-slate-100">
-            <tag-manager label="承辦單位" icon="🏢" v-model="form.units" :options="tags.units" @add="addTag('units', $event)" @edit="editTag('units', $event)" @remove="removeTag('units', $event)"></tag-manager>
-            <tag-manager label="負責人" icon="👤" v-model="form.persons" :options="tags.persons" @add="addTag('persons', $event)" @edit="editTag('persons', $event)" @remove="removeTag('persons', $event)"></tag-manager>
-          </div>
-
-          <div class="pt-2 border-t border-slate-100">
-            <label class="block text-xs font-semibold text-slate-600 mb-1.5">事件主旨 <span class="text-rose-500">*</span></label>
-            <input v-model="form.subject" type="text" placeholder="請輸入主旨..." class="w-full bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-sm font-semibold focus:bg-white focus:outline-none">
-          </div>
-
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <label class="block text-xs font-semibold text-slate-600">詳細說明與草稿</label>
-              <button type="button" @click="localAiRefine" class="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded-lg transition border border-indigo-200/60 cursor-pointer"><span>✨</span> 免 API 一鍵說明語氣潤飾</button>
+            <div>
+              <label class="block text-xs font-bold text-gray-600 mb-1">辦理情形</label>
+              <div class="flex space-x-2">
+                <label class="flex-1 text-center py-2 rounded border cursor-pointer" :class="newTask.status === '綠燈' ? 'bg-green-100 border-green-500' : 'bg-gray-50'">
+                  <input type="radio" v-model="newTask.status" value="綠燈" class="hidden"> 🟢 綠燈
+                </label>
+                <label class="flex-1 text-center py-2 rounded border cursor-pointer" :class="newTask.status === '黃燈' ? 'bg-yellow-100 border-yellow-500' : 'bg-gray-50'">
+                  <input type="radio" v-model="newTask.status" value="黃燈" class="hidden"> 🟡 黃燈
+                </label>
+                <label class="flex-1 text-center py-2 rounded border cursor-pointer" :class="newTask.status === '紅燈' ? 'bg-red-100 border-red-500' : 'bg-gray-50'">
+                  <input type="radio" v-model="newTask.status" value="紅燈" class="hidden"> 🔴 紅燈
+                </label>
+              </div>
             </div>
-            <textarea v-model="form.description" placeholder="請輸入說明..." rows="3" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-sm focus:bg-white focus:outline-none"></textarea>
-          </div>
-
-          <div class="p-4 rounded-xl border border-dashed border-blue-200 bg-blue-50/40 space-y-2">
-            <label class="block text-xs font-bold text-slate-700 flex items-center gap-1.5">
-              <span>🔗</span> 登錄 Google 雲端硬碟網址 (檔案或資料夾分享連結)
-            </label>
-            <input v-model="form.fileUrl" type="url" placeholder="https://drive.google.com/..." class="w-full bg-white border border-slate-200 p-2.5 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-          </div>
-
-          <div class="flex justify-end pt-2">
-            <button @click="handleSubmitRecord" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl shadow-md transition cursor-pointer">
-              💾 儲存案件
+            <button @click="saveRecord" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition">
+              💾 儲存並同步
             </button>
           </div>
         </section>
 
-        <!-- 看板檢核區 -->
-        <section class="space-y-6">
-          <div class="bg-white rounded-2xl border-2 border-amber-200/80 shadow-sm p-4 divide-y divide-slate-100">
-            <h4 class="font-bold text-amber-900 mb-2">🟡 辦理中 ({{ currentCategoryRecords.yellow.length }})</h4>
-            <div v-if="currentCategoryRecords.yellow.length === 0" class="text-xs text-slate-400 py-3 text-center">目前無案件</div>
-            <record-item v-for="item in currentCategoryRecords.yellow" :key="item.id" :record="item" @update-record="handleUpdateRecord" @change-light="updateRecordLight(item, $event)" @delete="deleteRecord(item.id)"></record-item>
-          </div>
-          <div class="bg-white rounded-2xl border-2 border-emerald-200/80 shadow-sm p-4 divide-y divide-slate-100">
-            <h4 class="font-bold text-emerald-900 mb-2">🟢 已完成 ({{ currentCategoryRecords.green.length }})</h4>
-            <div v-if="currentCategoryRecords.green.length === 0" class="text-xs text-slate-400 py-3 text-center">目前無案件</div>
-            <record-item v-for="item in currentCategoryRecords.green" :key="item.id" :record="item" @update-record="handleUpdateRecord" @change-light="updateRecordLight(item, $event)" @delete="deleteRecord(item.id)"></record-item>
-          </div>
-          <div class="bg-white rounded-2xl border-2 border-rose-200/80 shadow-sm p-4 divide-y divide-slate-100">
-            <h4 class="font-bold text-rose-900 mb-2">🔴 卡關/待決 ({{ currentCategoryRecords.red.length }})</h4>
-            <div v-if="currentCategoryRecords.red.length === 0" class="text-xs text-slate-400 py-3 text-center">目前無案件</div>
-            <record-item v-for="item in currentCategoryRecords.red" :key="item.id" :record="item" @update-record="handleUpdateRecord" @change-light="updateRecordLight(item, $event)" @delete="deleteRecord(item.id)"></record-item>
-          </div>
-        </section>
-      </template>
-
-      <!-- 視圖 2：定期評量出題分配 -->
-      <template v-else-if="activeView === 'exam'">
-        <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80">
-          <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl font-bold">📐</div>
-            <div>
-              <h2 class="text-2xl font-bold text-slate-800">定期評量出題分配</h2>
-              <p class="text-xs text-slate-500 mt-0.5">跨學年度命題教師登記，支援自訂標籤選填與手動填寫</p>
-            </div>
-          </div>
-          <button @click="addExamSchedule" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition cursor-pointer flex items-center gap-1.5">
-            <span>➕</span> 新增學年度
-          </button>
-        </header>
-
-        <section class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 space-y-4">
-          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div class="flex items-center gap-2">
-              <h3 class="text-sm font-bold text-slate-700 flex items-center gap-1.5"><span>🏷️</span> 出題老師姓名標籤庫</h3>
-              <span class="text-xs text-slate-400">（點擊標籤可直接填入目前聚焦的空格）</span>
-            </div>
-            <button @click="isManagingTeacherTags = !isManagingTeacherTags" class="text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 cursor-pointer">
-              {{ isManagingTeacherTags ? '完成編輯' : '⚙️ 編輯標籤' }}
-            </button>
-          </div>
-          <div class="flex flex-wrap gap-2 items-center">
-            <span v-for="teacher in teacherList" :key="teacher" @click="fillActiveInput(teacher)" class="bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer hover:bg-amber-100 transition">
-              👤 {{ teacher }}
-              <span v-if="isManagingTeacherTags" @click.stop="promptEditTeacher(teacher)" class="text-amber-600 ml-1">✏️</span>
-              <span v-if="isManagingTeacherTags" @click.stop="promptRemoveTeacher(teacher)" class="text-rose-500">✕</span>
-            </span>
-            <button @click="promptAddTeacher" class="px-3.5 py-1.5 rounded-xl text-xs font-medium border-2 border-dashed border-slate-300 text-slate-500 hover:text-amber-600 cursor-pointer">➕ 創建老師標籤</button>
-          </div>
-        </section>
-
-        <div class="space-y-6">
-          <div v-for="(exam, index) in examSchedules" :key="exam.id" class="bg-white rounded-2xl border shadow-sm p-6 space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div class="flex items-center gap-2">
-                <span class="font-bold text-slate-700 text-sm">學年度：</span>
-                <input v-model="exam.year" @change="saveLocalAndCloud" placeholder="例如: 114" class="w-24 bg-slate-50 border border-slate-300 text-center rounded-lg text-sm font-bold p-1.5 focus:outline-none focus:border-amber-400">
+        <!-- 案件列表 -->
+        <section class="bg-white rounded-lg shadow p-6">
+          <h2 class="text-lg font-bold text-gray-700 mb-4">📋 案件進度清單</h2>
+          <div class="space-y-3">
+            <div v-for="r in filteredRecords" :key="r.id" class="p-4 rounded border-l-4 shadow-sm bg-gray-50 flex justify-between items-center"
+                 :class="{'border-green-500': r.status==='綠燈', 'border-yellow-500': r.status==='黃燈', 'border-red-500': r.status==='紅燈'}">
+              <div>
+                <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded mr-2">{{ r.date }}</span>
+                <span class="font-bold text-gray-800">{{ r.subject }}</span>
+                <div class="text-xs text-gray-500 mt-2">承辦：{{ r.unit }} | 負責人：{{ r.person }}</div>
               </div>
-              <button @click="removeExamSchedule(index)" class="text-slate-400 hover:text-rose-600 text-xs font-bold cursor-pointer flex items-center gap-1">
-                <span>🗑️</span> 刪除此學年
-              </button>
-            </div>
-            <table class="w-full text-center border-collapse border border-slate-200 text-sm">
-              <thead class="bg-slate-100"><tr><th class="p-3 border">科目</th><th class="p-3 border text-blue-700">期中</th><th class="p-3 border text-emerald-700">期末</th></tr></thead>
-              <tbody>
-                <tr>
-                  <td class="p-3 border font-bold bg-slate-50">📖 國語</td>
-                  <td class="p-2 border">
-                    <div class="flex gap-1.5">
-                      <input v-model="exam.midChinese" @focus="setActiveTarget(exam, 'midChinese')" @change="saveLocalAndCloud" class="w-full text-center p-2 text-xs border rounded-lg focus:outline-none" placeholder="選填或輸入">
-                      <select @change="assignTeacher(exam, 'midChinese', $event)" class="bg-slate-100 border rounded-lg p-2 text-xs cursor-pointer shrink-0">
-                        <option value="">快速選取</option>
-                        <option v-for="t in teacherList" :key="t" :value="t">{{ t }}</option>
-                      </select>
-                    </div>
-                  </td>
-                  <td class="p-2 border">
-                    <div class="flex gap-1.5">
-                      <input v-model="exam.finalChinese" @focus="setActiveTarget(exam, 'finalChinese')" @change="saveLocalAndCloud" class="w-full text-center p-2 text-xs border rounded-lg focus:outline-none" placeholder="選填或輸入">
-                      <select @change="assignTeacher(exam, 'finalChinese', $event)" class="bg-slate-100 border rounded-lg p-2 text-xs cursor-pointer shrink-0">
-                        <option value="">快速選取</option>
-                        <option v-for="t in teacherList" :key="t" :value="t">{{ t }}</option>
-                      </select>
-                    </div>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="p-3 border font-bold bg-slate-50">🔢 數學</td>
-                  <td class="p-2 border">
-                    <div class="flex gap-1.5">
-                      <input v-model="exam.midMath" @focus="setActiveTarget(exam, 'midMath')" @change="saveLocalAndCloud" class="w-full text-center p-2 text-xs border rounded-lg focus:outline-none" placeholder="選填或輸入">
-                      <select @change="assignTeacher(exam, 'midMath', $event)" class="bg-slate-100 border rounded-lg p-2 text-xs cursor-pointer shrink-0">
-                        <option value="">快速選取</option>
-                        <option v-for="t in teacherList" :key="t" :value="t">{{ t }}</option>
-                      </select>
-                    </div>
-                  </td>
-                  <td class="p-2 border">
-                    <div class="flex gap-1.5">
-                      <input v-model="exam.finalMath" @focus="setActiveTarget(exam, 'finalMath')" @change="saveLocalAndCloud" class="w-full text-center p-2 text-xs border rounded-lg focus:outline-none" placeholder="選填或輸入">
-                      <select @change="assignTeacher(exam, 'finalMath', $event)" class="bg-slate-100 border rounded-lg p-2 text-xs cursor-pointer shrink-0">
-                        <option value="">快速選取</option>
-                        <option v-for="t in teacherList" :key="t" :value="t">{{ t }}</option>
-                      </select>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div v-if="examSchedules.length === 0" class="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-400">
-            尚未建立任何定期評量出題分配表
-          </div>
-        </div>
-      </template>
-
-      <!-- 視圖 3：工作輪流順序登記 -->
-      <template v-else-if="activeView === 'rotation'">
-        <header class="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 mb-6">
-          <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl font-bold">🔄</div>
-            <div>
-              <h2 class="text-2xl font-bold text-slate-800">工作輪流順序登記</h2>
-              <p class="text-xs text-slate-500 mt-0.5">自創輪值項目並排定接續人員與日期</p>
+              <button @click="deleteRecord(r.id)" class="text-red-500 hover:bg-red-100 px-2 py-1 rounded text-xs">刪除</button>
             </div>
           </div>
-          <button @click="promptAddDuty" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer">➕ 建立新輪流工作</button>
-        </header>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div v-for="duty in rotationDuties" :key="duty.id" class="bg-white p-5 rounded-2xl shadow-sm border space-y-4">
-            <div class="flex justify-between border-b pb-3 items-center">
-              <h4 class="font-bold flex items-center gap-2 text-slate-800">
-                <span>📌 {{ duty.title }}</span>
-                <button @click="promptEditDutyTitle(duty)" class="text-slate-400 hover:text-blue-500 text-xs px-1 cursor-pointer">✏️</button>
-              </h4>
-              <button @click="deleteDuty(duty.id)" class="text-slate-400 hover:text-rose-600 cursor-pointer">🗑️</button>
-            </div>
-
-            <!-- 輪值人員標籤區 -->
-            <div class="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-xl border min-h-[50px] items-center">
-              <template v-for="(person, pIdx) in duty.members" :key="pIdx">
-                <span class="bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center shadow-sm">
-                  <span class="text-indigo-600 mr-1.5">#{{ pIdx + 1 }}</span> 
-                  <span>{{ typeof person === 'string' ? person : person.name }}</span>
-                  <span v-if="person.date" class="ml-1.5 text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{{ person.date }}</span>
-                  <button @click="removeDutyMember(duty, pIdx)" class="text-rose-400 hover:text-rose-600 ml-1.5 cursor-pointer">✕</button>
-                </span>
-                <span v-if="pIdx < duty.members.length - 1" class="text-slate-300 text-xs">➔</span>
-              </template>
-              <span v-if="duty.members.length === 0" class="text-xs text-slate-400">目前尚無排定人員</span>
-            </div>
-
-            <!-- 新增人員與日期輸入區 -->
-            <div class="flex gap-2">
-              <input v-model="duty.newMemberInput" @keyup.enter="addDutyMember(duty)" placeholder="輸入姓名..." class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-400">
-              <input v-model="duty.newMemberDate" @keyup.enter="addDutyMember(duty)" placeholder="日期/月份(選填)" class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-400">
-              <button @click="addDutyMember(duty)" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs cursor-pointer shrink-0">加入</button>
-            </div>
-          </div>
-        </div>
-      </template>
-
-    </main>
+        </section>
+      </div>
+    </div>
   </div>
 
   <script>
     const { createApp, ref, computed, onMounted } = Vue;
 
-    // --- 標籤管理子元件 ---
-    const TagManager = {
-      props: ['label', 'icon', 'modelValue', 'options'],
-      emits: ['update:modelValue', 'add', 'edit', 'remove'],
-      template: `
-        <div>
-          <div class="flex justify-between mb-2">
-            <div class="text-xs font-semibold text-slate-600"><span>{{ icon }}</span> {{ label }}：<span class="text-blue-600 ml-1">{{ modelValue.join('、') || '未選取' }}</span></div>
-            <button @click="isManaging = !isManaging" class="text-[11px] px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 cursor-pointer">{{ isManaging ? '完成管理' : '⚙️ 管理標籤' }}</button>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <button v-for="opt in options" :key="opt" @click="toggleTag(opt)" :class="['px-3 py-1.5 text-xs border rounded-lg cursor-pointer transition', modelValue.includes(opt) ? 'bg-blue-600 text-white font-bold' : 'bg-white text-slate-700']">
-              {{ opt }}
-              <span v-if="isManaging" @click.stop="promptEdit(opt)" class="ml-1 text-blue-300 hover:text-white">✏️</span>
-              <span v-if="isManaging" @click.stop="promptRemove(opt)" class="ml-1 text-rose-300 hover:text-rose-100">❌</span>
-            </button>
-            <button @click="promptAdd" class="px-3 py-1.5 text-xs border border-dashed rounded-lg text-slate-500 hover:border-blue-400 hover:text-blue-600 cursor-pointer">➕ 新增</button>
-          </div>
-        </div>
-      `,
-      setup(props, { emit }) {
-        const isManaging = ref(false);
-        const toggleTag = (tag) => {
-          if (isManaging.value) return;
-          let list = [...props.modelValue];
-          list.includes(tag) ? list = list.filter(i => i !== tag) : list.push(tag);
-          emit('update:modelValue', list);
-        };
-        const promptAdd = () => { const v = prompt(`新增 [${props.label}] 標籤名稱:`); if(v && v.trim()) emit('add', v.trim()); };
-        const promptEdit = (o) => { const n = prompt(`修改 [${props.label}] 標籤名稱:`, o); if(n && n.trim() && n !== o) emit('edit', { oldVal: o, newVal: n.trim() }); };
-        const promptRemove = (v) => { if(confirm(`確定刪除 [${v}] 標籤？`)) emit('remove', v); };
-        return { isManaging, toggleTag, promptAdd, promptEdit, promptRemove };
-      }
-    };
-
-    // --- 案件卡片子元件 ---
-    const RecordItem = {
-      props: ['record'],
-      emits: ['change-light', 'delete', 'update-record'],
-      template: `
-        <div class="py-4 flex flex-col md:flex-row justify-between gap-3 text-xs border-b border-slate-100 last:border-0">
-          <div v-if="!isEditing" class="flex-1 space-y-2">
-            <div class="flex gap-1.5 flex-wrap items-center">
-              <span class="bg-slate-100 px-2 py-1 rounded-md font-semibold text-slate-600">{{ record.date }}</span>
-              <span v-for="u in parseTags(record.units)" :key="'u'+u" class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md font-semibold border border-indigo-100">🏢 {{ u }}</span>
-              <span v-for="p in parseTags(record.persons)" :key="'p'+p" class="bg-slate-100 text-slate-700 px-2 py-1 rounded-md font-semibold border border-slate-200">👤 {{ p }}</span>
-            </div>
-            <p class="font-bold text-sm text-slate-800">{{ record.subject }}</p>
-            <p v-if="record.description" class="whitespace-pre-wrap text-slate-600 leading-relaxed">{{ record.description }}</p>
-            <div v-if="record.fileUrl" class="mt-1">
-              <a :href="record.fileUrl" target="_blank" class="inline-flex items-center text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 hover:underline">🔗 檢視雲端檔案或連結</a>
-            </div>
-            <button @click="startEdit" class="text-slate-400 hover:text-blue-600 mt-2 block font-semibold transition">✏️ 編輯此案件</button>
-          </div>
-          
-          <div v-else class="flex-1 space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-inner">
-            <div class="grid grid-cols-2 gap-3">
-              <input v-model="editForm.date" type="date" class="border border-slate-300 p-2 rounded-lg w-full bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-              <input v-model="editForm.subject" placeholder="事件主旨" class="border border-slate-300 p-2 rounded-lg w-full font-bold bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <input v-model="editForm.unitsStr" placeholder="單位 (逗號分隔)" class="border border-slate-300 p-2 rounded-lg w-full bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-              <input v-model="editForm.personsStr" placeholder="負責人 (逗號分隔)" class="border border-slate-300 p-2 rounded-lg w-full bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-            </div>
-            <textarea v-model="editForm.description" placeholder="詳細說明" rows="3" class="border border-slate-300 p-2 rounded-lg w-full bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
-            <input v-model="editForm.fileUrl" type="url" placeholder="登錄雲端硬碟網址" class="border border-slate-300 p-2 rounded-lg w-full bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-            <div class="flex gap-2">
-              <button @click="saveEdit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg transition">儲存修改</button>
-              <button @click="isEditing = false" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-4 py-2 rounded-lg transition">取消</button>
-            </div>
-          </div>
-
-          <div class="flex gap-2 shrink-0 self-start md:self-center items-center">
-            <select :value="record.lightColor" @change="$emit('change-light', $event.target.value)" class="border border-slate-200 rounded-lg p-2 font-bold bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer">
-              <option value="yellow">🟡 黃燈</option>
-              <option value="green">🟢 綠燈</option>
-              <option value="red">🔴 紅燈</option>
-            </select>
-            <button @click="$emit('delete')" class="text-slate-400 hover:text-rose-600 p-2 hover:bg-rose-50 rounded-lg transition cursor-pointer">🗑️</button>
-          </div>
-        </div>
-      `,
-      setup(props, { emit }) {
-        const isEditing = ref(false);
-        const editForm = ref({});
-        
-        const parseTags = (arr) => {
-          if (!arr) return [];
-          if (Array.isArray(arr)) return arr;
-          return typeof arr === 'string' ? arr.split(',').map(s=>s.trim()).filter(Boolean) : [];
-        };
-
-        const startEdit = () => {
-          editForm.value = {
-            date: props.record.date || '', 
-            subject: props.record.subject || '', 
-            description: props.record.description || '',
-            unitsStr: parseTags(props.record.units).join(','), 
-            personsStr: parseTags(props.record.persons).join(','), 
-            fileUrl: props.record.fileUrl || ''
-          };
-          isEditing.value = true;
-        };
-
-        const saveEdit = () => {
-          if (!editForm.value.subject.trim()) return alert('主旨不得為空！');
-          const updatedRecord = {
-            ...props.record,
-            date: editForm.value.date, 
-            subject: editForm.value.subject.trim(), 
-            description: editForm.value.description.trim(), 
-            fileUrl: editForm.value.fileUrl.trim(),
-            units: editForm.value.unitsStr.split(',').map(s=>s.trim()).filter(Boolean),
-            persons: editForm.value.personsStr.split(',').map(s=>s.trim()).filter(Boolean)
-          };
-          emit('update-record', updatedRecord);
-          isEditing.value = false;
-        };
-        return { isEditing, editForm, startEdit, saveEdit, parseTags };
-      }
-    };
-
-    // --- 主程式 Vue 實例 ---
     createApp({
-      components: { TagManager, RecordItem },
       setup() {
-        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxSVJg9wRZryvZNjULjDrA5azW4Y8pXJ3hfTHsHwGJeeqaHgNO--domMpPZNo17GTQ_/exec';
+        const categories = ['公文法規', '行政決議', '學年會議', '建議討論'];
+        const currentCategory = ref(categories[0]);
+        const records = ref([]);
         
-        const activeView = ref('records');
-        const categories = [
-          { id: 'official', name: '公文法規', icon: '📜' }, 
-          { id: 'decision', name: '行政決議', icon: '⚖️' }, 
-          { id: 'academic', name: '學年會議', icon: '🏫' }, 
-          { id: 'discussion', name: '建議討論', icon: '💡' }
-        ];
-        const currentCategory = ref('official');
-        
-        const syncStatus = ref('synced');
-        const syncStatusText = ref('本機與雲端同步完成');
+        const syncStatus = ref('idle'); // idle, syncing, synced, error
         const lastSyncTime = ref('');
 
-        const tags = ref({ units: ['教務處', '學務處'], persons: ['主任', '組長'] });
-        const teacherList = ref(['王老師', '李老師', '陳老師', '張老師', '林老師', '趙老師']);
-        const isManagingTeacherTags = ref(false);
-
-        const examSchedules = ref([{ id: 'EXAM_113', year: '113', midChinese: '', finalChinese: '', midMath: '', finalMath: '' }]);
-
-        const rotationDuties = ref([{ id: 'DUTY_1', title: '學年晨會紀錄輪流', members: [{name: '王老師', date: '9/14'}, {name: '李老師', date: '9/21'}], newMemberInput: '', newMemberDate: '' }]);
-        const records = ref([]);
-        const form = ref({ date: new Date().toISOString().split('T')[0], lightColor: 'yellow', units: [], persons: [], subject: '', description: '', fileUrl: '' });
-
-        const activeCategory = computed(() => categories.find(c => c.id === currentCategory.value) || categories[0]);
-        const countByCategory = (id) => records.value.filter(r => r.category === id).length;
-        const currentCategoryRecords = computed(() => {
-          const list = records.value.filter(r => r.category === currentCategory.value).sort((a,b) => new Date(b.date) - new Date(a.date));
-          return { 
-            yellow: list.filter(r => r.lightColor === 'yellow'), 
-            green: list.filter(r => r.lightColor === 'green'), 
-            red: list.filter(r => r.lightColor === 'red') 
-          };
+        const newTask = ref({
+          subject: '',
+          unit: '',
+          person: '',
+          status: '黃燈'
         });
 
-        const saveLocalAndCloud = async () => { 
-          const payload = {
-            records: records.value, tags: tags.value, teacherList: teacherList.value, 
-            examSchedules: examSchedules.value, rotationDuties: rotationDuties.value
-          };
-          localStorage.setItem('ADMIN_APP_DATA_V12', JSON.stringify(payload));
-          syncStatusText.value = '已暫存至本機'; 
-          
-          if (!GAS_API_URL) return;
-          syncStatus.value = 'syncing';
-          syncStatusText.value = '雲端同步中...';
-          try {
-            await fetch(GAS_API_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-              body: JSON.stringify({ action: 'saveAll', ...payload })
-            });
-            syncStatus.value = 'synced';
-            syncStatusText.value = '本機與雲端同步完成';
-            lastSyncTime.value = new Date().toLocaleTimeString();
-          } catch(e) {
-            syncStatus.value = 'error';
-            syncStatusText.value = '同步異常，將使用本機資料';
-          }
-        };
+        // 狀態文字與顏色
+        const syncStatusText = computed(() => {
+          if (syncStatus.value === 'idle') return '等待同步...';
+          if (syncStatus.value === 'syncing') return '🔄 雲端同步中...';
+          if (syncStatus.value === 'synced') return `✅ 已同步 (${lastSyncTime.value})`;
+          return '❌ 同步失敗 (離線模式)';
+        });
+        const syncStatusColor = computed(() => {
+          if (syncStatus.value === 'synced') return 'text-green-600';
+          if (syncStatus.value === 'error') return 'text-red-600';
+          return 'text-gray-500';
+        });
 
-        const fetchCloudData = async () => {
-          const cached = localStorage.getItem('ADMIN_APP_DATA_V12');
+        const filteredRecords = computed(() => {
+          return records.value.filter(r => r.category === currentCategory.value).reverse();
+        });
+
+        // 1. 讀取本機資料 (第一步：秒開)
+        const loadLocalCache = () => {
+          const cached = localStorage.getItem('adminSystemData');
           if (cached) {
-            const data = JSON.parse(cached);
-            if (data.records) records.value = data.records;
-            if (data.tags) tags.value = data.tags;
-            if (data.teacherList) teacherList.value = data.teacherList;
-            if (data.examSchedules) examSchedules.value = data.examSchedules;
-            if (data.rotationDuties) rotationDuties.value = data.rotationDuties;
+            try {
+              const parsed = JSON.parse(cached);
+              records.value = parsed.records || [];
+            } catch (e) {}
           }
+        };
 
-          if (!GAS_API_URL) return;
+        // 2. 從 Google Drive 拉取最新 JSON (第二步：雲端更新)
+        const fetchCloudData = () => {
           syncStatus.value = 'syncing';
-          syncStatusText.value = '讀取雲端資料...';
-          try {
-            const res = await fetch(`${GAS_API_URL}?action=getData`);
-            const json = await res.json();
-            if (json.status === 'success') {
-              if (json.records && json.records.length > 0) records.value = json.records;
-              if (json.tags && Object.keys(json.tags).length > 0) tags.value = json.tags;
-              if (json.teacherList) teacherList.value = json.teacherList;
-              if (json.examSchedules) examSchedules.value = json.examSchedules;
-              if (json.rotationDuties) rotationDuties.value = json.rotationDuties;
-              saveLocalAndCloud();
+          google.script.run.withSuccessHandler((responseStr) => {
+            try {
+              const json = JSON.parse(responseStr);
+              if (json.records) {
+                records.value = json.records;
+                localStorage.setItem('adminSystemData', JSON.stringify({ records: records.value }));
+                syncStatus.value = 'synced';
+                lastSyncTime.value = new Date().toLocaleTimeString('zh-TW');
+              }
+            } catch (e) {
+              syncStatus.value = 'error';
             }
-          } catch(e) {
+          }).withFailureHandler((err) => {
             syncStatus.value = 'error';
-            syncStatusText.value = '讀取失敗，使用本機資料';
+          }).loadDataFromDrive();
+        };
+
+        // 3. 將資料寫入本機與雲端 JSON
+        const triggerCloudSync = () => {
+          syncStatus.value = 'syncing';
+          const dataStr = JSON.stringify({ records: records.value });
+          
+          // 寫入本地
+          localStorage.setItem('adminSystemData', dataStr);
+          
+          // 寫入雲端 Drive
+          google.script.run.withSuccessHandler((res) => {
+            const result = JSON.parse(res);
+            if (result.status === 'success') {
+              syncStatus.value = 'synced';
+              lastSyncTime.value = new Date().toLocaleTimeString('zh-TW');
+            } else {
+              syncStatus.value = 'error';
+            }
+          }).withFailureHandler((err) => {
+            syncStatus.value = 'error';
+          }).saveDataToDrive(dataStr);
+        };
+
+        // 新增案件
+        const saveRecord = () => {
+          if (!newTask.value.subject) return alert('請填寫主旨！');
+          records.value.push({
+            id: 'T_' + new Date().getTime(),
+            category: currentCategory.value,
+            date: new Date().toISOString().split('T')[0],
+            subject: newTask.value.subject,
+            unit: newTask.value.unit,
+            person: newTask.value.person,
+            status: newTask.value.status
+          });
+          
+          // 清空表單
+          newTask.value.subject = '';
+          
+          // 觸發雙軌儲存
+          triggerCloudSync();
+        };
+
+        // 刪除案件
+        const deleteRecord = (id) => {
+          if (confirm('確定要刪除這筆紀錄嗎？')) {
+            records.value = records.value.filter(r => r.id !== id);
+            triggerCloudSync();
           }
         };
 
-        const addTag = (t, v) => { tags.value[t].push(v); saveLocalAndCloud(); };
-        const editTag = (t, o) => { tags.value[t] = tags.value[t].map(x => x === o.oldVal ? o.newVal : x); saveLocalAndCloud(); };
-        const removeTag = (t, v) => { tags.value[t] = tags.value[t].filter(x => x !== v); saveLocalAndCloud(); };
-        
-        const promptAddTeacher = () => { const v = prompt('新增出題老師姓名:'); if(v && v.trim()) { teacherList.value.push(v.trim()); saveLocalAndCloud(); } };
-        const promptEditTeacher = (o) => { const n = prompt('修改出題老師姓名:', o); if(n && n.trim() !== o) { teacherList.value = teacherList.value.map(x => x === o ? n.trim() : x); saveLocalAndCloud(); } };
-        const promptRemoveTeacher = (v) => { if(confirm(`確定刪除 ${v}？`)) { teacherList.value = teacherList.value.filter(x => x !== v); saveLocalAndCloud(); } };
-        
-        const activeTarget = ref(null);
-        const setActiveTarget = (obj, field) => { activeTarget.value = { obj, field }; };
-        const fillActiveInput = (t) => { if(activeTarget.value && !isManagingTeacherTags.value) { activeTarget.value.obj[activeTarget.value.field] = t; saveLocalAndCloud(); } };
-        const assignTeacher = (obj, field, e) => { if(e.target.value) { obj[field] = e.target.value; saveLocalAndCloud(); e.target.value = ''; } };
-
-        const addExamSchedule = () => { examSchedules.value.unshift({ id: 'EXAM_' + Date.now(), year: '', midChinese: '', finalChinese: '', midMath: '', finalMath: '' }); saveLocalAndCloud(); };
-        const removeExamSchedule = (idx) => { if(confirm('確定刪除此學年分配表？')) { examSchedules.value.splice(idx, 1); saveLocalAndCloud(); } };
-        
-        const promptAddDuty = () => { 
-          const title = prompt('請輸入要輪流的工作名稱：'); 
-          if(title && title.trim()) { 
-            rotationDuties.value.push({ id: 'DUTY_' + Date.now(), title: title.trim(), members: [], newMemberInput: '', newMemberDate: '' }); 
-            saveLocalAndCloud(); 
-          } 
-        };
-        const promptEditDutyTitle = (duty) => {
-          const newTitle = prompt('請修改輪流工作名稱：', duty.title);
-          if (newTitle && newTitle.trim() && newTitle.trim() !== duty.title) { duty.title = newTitle.trim(); saveLocalAndCloud(); }
-        };
-        const deleteDuty = (id) => { if(confirm('確定刪除此輪流工作？')) { rotationDuties.value = rotationDuties.value.filter(x => x.id !== id); saveLocalAndCloud(); } };
-        
-        const addDutyMember = (d) => { 
-          if(d.newMemberInput && d.newMemberInput.trim()) { 
-            d.members.push({ name: d.newMemberInput.trim(), date: d.newMemberDate ? d.newMemberDate.trim() : '' }); 
-            d.newMemberInput = ''; d.newMemberDate = ''; saveLocalAndCloud(); 
-          } 
-        };
-        const removeDutyMember = (d, idx) => { d.members.splice(idx, 1); saveLocalAndCloud(); };
-
-        const localAiRefine = () => {
-          if (!form.value.description) return alert('請先輸入說明草稿！');
-          let text = form.value.description;
-          text = text.replace(/去做|去弄/g, '辦理').replace(/大家/g, '相關同仁').replace(/要開會/g, '召開會議研商');
-          form.value.description = text.startsWith('【擬辦說明】') ? text : `【擬辦說明】\n${text}`;
-        };
-
-        const handleSubmitRecord = () => {
-          if (!form.value.subject.trim()) return alert('請輸入主旨！');
-          records.value.unshift({
-            id: 'REC_' + Date.now(), category: currentCategory.value, date: form.value.date, lightColor: form.value.lightColor,
-            units: [...form.value.units], persons: [...form.value.persons], subject: form.value.subject.trim(),
-            description: form.value.description.trim(), fileUrl: form.value.fileUrl.trim()
-          });
-          form.value.subject = ''; form.value.description = ''; form.value.fileUrl = ''; form.value.units = []; form.value.persons = [];
-          saveLocalAndCloud();
-        };
-
-        const handleUpdateRecord = (updatedRecord) => {
-          const index = records.value.findIndex(r => r.id === updatedRecord.id);
-          if (index !== -1) { records.value[index] = updatedRecord; saveLocalAndCloud(); }
-        };
-
-        const updateRecordLight = (r, v) => { r.lightColor = v; saveLocalAndCloud(); };
-        const deleteRecord = (id) => { if(confirm('確定刪除此案件？')) { records.value = records.value.filter(r => r.id !== id); saveLocalAndCloud(); } };
-
-        onMounted(() => { fetchCloudData(); });
+        onMounted(() => {
+          loadLocalCache(); // 先秒開本地資料
+          fetchCloudData(); // 再到背景去抓 Google Drive 最新檔案
+        });
 
         return {
-          activeView, categories, currentCategory, activeCategory, countByCategory, currentCategoryRecords,
-          syncStatus, syncStatusText, lastSyncTime, fetchCloudData,
-          tags, addTag, editTag, removeTag, 
-          teacherList, isManagingTeacherTags, promptAddTeacher, promptEditTeacher, promptRemoveTeacher,
-          activeTarget, setActiveTarget, fillActiveInput, assignTeacher,
-          examSchedules, addExamSchedule, removeExamSchedule,
-          rotationDuties, promptAddDuty, promptEditDutyTitle, deleteDuty, addDutyMember, removeDutyMember,
-          form, localAiRefine, handleSubmitRecord, handleUpdateRecord, updateRecordLight, deleteRecord, saveLocalAndCloud, records
+          categories, currentCategory, records, newTask, filteredRecords,
+          syncStatusText, syncStatusColor, saveRecord, deleteRecord, triggerCloudSync
         };
       }
     }).mount('#app');
