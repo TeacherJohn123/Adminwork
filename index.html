@@ -147,10 +147,19 @@
           </form>
         </section>
 
-        <!-- 三、學年出題記錄 (交乘矩陣表格) -->
-        <section v-else-if="currentTab === 'exam_record'" class="bg-white rounded-xl shadow-sm p-6 border">
-          <div class="flex justify-between items-center mb-4 border-b pb-2">
-            <h2 class="text-lg font-bold text-slate-700">📋 學年出題分工與記錄總覽</h2>
+        <!-- 三、學年出題記錄 (交乘矩陣表格 + 學年標籤) -->
+        <section v-else-if="currentTab === 'exam_record'" class="bg-white rounded-xl shadow-sm p-6 border space-y-4">
+          <div class="flex justify-between items-center border-b pb-3">
+            <div class="flex items-center space-x-3">
+              <h2 class="text-lg font-bold text-slate-700">📋 學年出題分工與記錄總覽</h2>
+              <!-- 學年度選擇標籤 -->
+              <div class="flex items-center space-x-2 bg-sky-50 border border-sky-200 px-3 py-1 rounded-lg">
+                <label class="text-xs font-bold text-sky-700">檢視學年:</label>
+                <select v-model="selectedSchoolYear" class="text-sm font-bold text-sky-800 bg-transparent focus:outline-none cursor-pointer">
+                  <option v-for="sy in tagOptions.schoolYears" :key="sy" :value="sy">{{ sy }}</option>
+                </select>
+              </div>
+            </div>
             <span class="text-xs text-slate-500 font-medium">提示：可直接於表格內下拉選擇出題老師與填寫範圍</span>
           </div>
 
@@ -209,9 +218,9 @@
             </table>
           </div>
 
-          <div class="mt-6 text-right">
+          <div class="text-right pt-2">
             <button @click="submitExamMatrix" class="bg-sky-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
-              儲存全學年出題分工表
+              儲存 [{{ selectedSchoolYear }}] 全學年出題分工表
             </button>
           </div>
         </section>
@@ -228,10 +237,26 @@
 
     <!-- 標籤管理彈跳視窗 Modal -->
     <div v-if="showTagModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-xl space-y-6">
+      <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-xl space-y-6 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center border-b pb-3">
           <h3 class="text-lg font-bold text-slate-700">⚙️ 管理系統標籤選項</h3>
           <button @click="showTagModal = false" class="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+        </div>
+
+        <!-- 編輯學年度標籤 -->
+        <div>
+          <label class="block text-sm font-bold text-slate-600 mb-2">學年度標籤</label>
+          <div class="flex flex-wrap gap-2 mb-2">
+            <span v-for="(sy, index) in tagOptions.schoolYears" :key="sy" 
+                  class="bg-sky-50 border border-sky-200 px-3 py-1 rounded-full text-sm flex items-center space-x-2 text-sky-700">
+              <span>{{ sy }}</span>
+              <button @click="removeTag('schoolYears', index)" class="text-red-500 hover:text-red-700 font-bold text-xs">✕</button>
+            </span>
+          </div>
+          <div class="flex space-x-2">
+            <input type="text" v-model="newSchoolYearInput" placeholder="例如: 115學年度..." class="flex-1 border rounded px-3 py-1 text-sm">
+            <button @click="addTag('schoolYears', newSchoolYearInput); newSchoolYearInput=''" class="bg-sky-600 text-white px-3 py-1 rounded text-sm hover:bg-sky-700">新增</button>
+          </div>
         </div>
 
         <!-- 編輯承辦單位 -->
@@ -308,11 +333,16 @@
         const currentTab = ref('official_doc');
         const showTagModal = ref(false);
 
+        // 標籤選項清單（包含學年度）
         const tagOptions = ref({
+          schoolYears: ['114學年度', '115學年度', '116學年度'],
           departments: ['教務處', '學務處', '總務處', '輔導室'],
           assignees: ['王老師', '李老師', '陳老師'],
           teachers: ['王老師', '李老師', '陳老師', '林老師']
         });
+
+        // 當前選中的學年度（預設 114學年度）
+        const selectedSchoolYear = ref('114學年度');
 
         const globalSettings = ref({
           department: '教務處',
@@ -330,6 +360,8 @@
           { semester: '下學期', subject: '數學', midtermTeacher: '陳老師', midtermRange: '', midtermUrl: '', finalTeacher: '林老師', finalRange: '', finalUrl: '' }
         ]);
 
+        // 新增標籤輸入暫存
+        const newSchoolYearInput = ref('');
         const newDeptInput = ref('');
         const newAssigneeInput = ref('');
         const newTeacherInput = ref('');
@@ -360,10 +392,11 @@
         const submitExamMatrix = () => {
           const finalData = {
             ...globalSettings.value,
+            schoolYear: selectedSchoolYear.value,
             matrixData: examMatrix.value
           };
           console.log("送出學年出題矩陣：", finalData);
-          alert("【模擬】全學年出題分工表已成功暫存！");
+          alert(`【模擬】[${selectedSchoolYear.value}] 全學年出題分工表已成功暫存！`);
         };
 
         return {
@@ -371,10 +404,12 @@
           currentTab,
           showTagModal,
           tagOptions,
+          selectedSchoolYear,
           globalSettings,
           docForm,
           meetingForm,
           examMatrix,
+          newSchoolYearInput,
           newDeptInput,
           newAssigneeInput,
           newTeacherInput,
