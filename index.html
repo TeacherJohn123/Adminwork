@@ -36,24 +36,30 @@
     <!-- 右側主要內容區 Main Content -->
     <main class="flex-1 flex flex-col overflow-y-auto">
       
-      <!-- 上方頂部列 (包含可自由編輯的標籤) -->
+      <!-- 上方頂部列 (包含可自由編輯/刪除的標籤) -->
       <header class="bg-white shadow-sm px-8 py-4 flex justify-between items-center border-b">
         <h1 class="text-xl font-bold text-slate-700">
           {{ tabs.find(t => t.id === currentTab).name }}
         </h1>
         
-        <!-- 自由編輯標籤區 -->
+        <!-- 標籤選擇與管理區 -->
         <div class="flex items-center space-x-4 bg-slate-50 p-2 rounded-lg border">
           <div class="flex items-center space-x-2">
             <label class="text-xs font-semibold text-slate-500">承辦單位:</label>
-            <input type="text" v-model="globalSettings.department" 
-                   class="px-2 py-1 text-sm border rounded bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 w-28">
+            <select v-model="globalSettings.department" class="px-2 py-1 text-sm border rounded bg-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+              <option v-for="dept in tagOptions.departments" :key="dept" :value="dept">{{ dept }}</option>
+            </select>
           </div>
           <div class="flex items-center space-x-2">
             <label class="text-xs font-semibold text-slate-500">承辦人員:</label>
-            <input type="text" v-model="globalSettings.assignee" 
-                   class="px-2 py-1 text-sm border rounded bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 w-24">
+            <select v-model="globalSettings.assignee" class="px-2 py-1 text-sm border rounded bg-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+              <option v-for="person in tagOptions.assignees" :key="person" :value="person">{{ person }}</option>
+            </select>
           </div>
+          <!-- 開啟標籤管理按鈕 -->
+          <button @click="showTagModal = true" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-2.5 py-1.5 rounded transition-colors font-medium">
+            ⚙️ 編輯標籤
+          </button>
         </div>
       </header>
 
@@ -63,11 +69,11 @@
         <!-- 一、重要公文 -->
         <section v-if="currentTab === 'official_doc'" class="bg-white rounded-xl shadow-sm p-6 border">
           <h2 class="text-lg font-bold mb-4 text-slate-700 border-b pb-2">➕ 新增重要公文紀錄</h2>
-          <form @submit.prevent="submitOfficialDoc" class="space-y-4">
+          <form @submit.prevent="submitForm('重要公文', docForm)" class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">公文發出日期</label>
-                <input type="date" v-model="docForm.date" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
+                <input type="date" v-model="docForm.date" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500" required>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">張貼公文文號</label>
@@ -76,7 +82,7 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">公文主旨</label>
-              <input type="text" v-model="docForm.subject" placeholder="請輸入公文主旨" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
+              <input type="text" v-model="docForm.subject" placeholder="請輸入公文主旨" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500" required>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">公文說明</label>
@@ -93,13 +99,13 @@
         </section>
 
         <!-- 二、學年會議 -->
-        <section v-if="currentTab === 'grade_meeting'" class="bg-white rounded-xl shadow-sm p-6 border">
+        <section v-else-if="currentTab === 'grade_meeting'" class="bg-white rounded-xl shadow-sm p-6 border">
           <h2 class="text-lg font-bold mb-4 text-slate-700 border-b pb-2">➕ 新增學年會議提案</h2>
-          <form @submit.prevent="submitMeeting" class="space-y-4">
+          <form @submit.prevent="submitForm('學年會議', meetingForm)" class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">會議日期</label>
-                <input type="date" v-model="meetingForm.date" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
+                <input type="date" v-model="meetingForm.date" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500" required>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">提案狀態 (紅黃綠燈)</label>
@@ -121,7 +127,7 @@
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">學年提案主旨</label>
-              <input type="text" v-model="meetingForm.subject" placeholder="請輸入提案主旨" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
+              <input type="text" v-model="meetingForm.subject" placeholder="請輸入提案主旨" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500" required>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">提案說明</label>
@@ -141,7 +147,64 @@
           </form>
         </section>
 
-        <!-- 三~七 待討論分頁 -->
+        <!-- 三、學年出題記錄 -->
+        <section v-else-if="currentTab === 'exam_record'" class="bg-white rounded-xl shadow-sm p-6 border">
+          <h2 class="text-lg font-bold mb-4 text-slate-700 border-b pb-2">➕ 新增學年出題記錄</h2>
+          <form @submit.prevent="submitForm('學年出題記錄', examForm)" class="space-y-4">
+            <div class="grid grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">學期</label>
+                <select v-model="examForm.semester" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
+                  <option value="上學期">上學期</option>
+                  <option value="下學期">下學期</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">科目</label>
+                <select v-model="examForm.subjectName" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
+                  <option value="國語">國語</option>
+                  <option value="數學">數學</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">考試類別</label>
+                <select v-model="examForm.examType" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
+                  <option value="期中考">期中考</option>
+                  <option value="期末考">期末考</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">出題老師</label>
+                <select v-model="examForm.teacher" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
+                  <option v-for="t in tagOptions.teachers" :key="t" :value="t">{{ t }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">考試範圍 / 單元</label>
+                <input type="text" v-model="examForm.range" placeholder="例如：第1課 ~ 第4課" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">備註說明</label>
+              <textarea rows="2" v-model="examForm.description" placeholder="出題注意事項或方向..." class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500"></textarea>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">試卷雲端硬碟連結</label>
+              <input type="url" v-model="examForm.driveUrl" placeholder="https://drive.google.com/..." class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
+            </div>
+
+            <button type="submit" class="bg-sky-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
+              儲存出題記錄
+            </button>
+          </form>
+        </section>
+
+        <!-- 四~七 待討論分頁 -->
         <section v-else class="bg-white rounded-xl shadow-sm p-12 text-center border">
           <div class="text-4xl mb-3">🚧</div>
           <h2 class="text-xl font-bold text-slate-700 mb-2">{{ tabs.find(t => t.id === currentTab).name }}</h2>
@@ -151,6 +214,68 @@
       </div>
     </main>
 
+    <!-- 標籤管理彈跳視窗 Modal -->
+    <div v-if="showTagModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-xl space-y-6">
+        <div class="flex justify-between items-center border-b pb-3">
+          <h3 class="text-lg font-bold text-slate-700">⚙️ 管理系統標籤選項</h3>
+          <button @click="showTagModal = false" class="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+        </div>
+
+        <!-- 編輯承辦單位 -->
+        <div>
+          <label class="block text-sm font-bold text-slate-600 mb-2">承辦單位標籤</label>
+          <div class="flex flex-wrap gap-2 mb-2">
+            <span v-for="(dept, index) in tagOptions.departments" :key="dept" 
+                  class="bg-slate-100 border px-3 py-1 rounded-full text-sm flex items-center space-x-2">
+              <span>{{ dept }}</span>
+              <button @click="removeTag('departments', index)" class="text-red-500 hover:text-red-700 font-bold text-xs">✕</button>
+            </span>
+          </div>
+          <div class="flex space-x-2">
+            <input type="text" v-model="newDeptInput" placeholder="新增單位名稱..." class="flex-1 border rounded px-3 py-1 text-sm">
+            <button @click="addTag('departments', newDeptInput); newDeptInput=''" class="bg-sky-600 text-white px-3 py-1 rounded text-sm hover:bg-sky-700">新增</button>
+          </div>
+        </div>
+
+        <!-- 編輯承辦人員 -->
+        <div>
+          <label class="block text-sm font-bold text-slate-600 mb-2">承辦人員標籤</label>
+          <div class="flex flex-wrap gap-2 mb-2">
+            <span v-for="(person, index) in tagOptions.assignees" :key="person" 
+                  class="bg-slate-100 border px-3 py-1 rounded-full text-sm flex items-center space-x-2">
+              <span>{{ person }}</span>
+              <button @click="removeTag('assignees', index)" class="text-red-500 hover:text-red-700 font-bold text-xs">✕</button>
+            </span>
+          </div>
+          <div class="flex space-x-2">
+            <input type="text" v-model="newAssigneeInput" placeholder="新增人員名稱..." class="flex-1 border rounded px-3 py-1 text-sm">
+            <button @click="addTag('assignees', newAssigneeInput); newAssigneeInput=''" class="bg-sky-600 text-white px-3 py-1 rounded text-sm hover:bg-sky-700">新增</button>
+          </div>
+        </div>
+
+        <!-- 編輯出題老師 -->
+        <div>
+          <label class="block text-sm font-bold text-slate-600 mb-2">學年出題老師標籤</label>
+          <div class="flex flex-wrap gap-2 mb-2">
+            <span v-for="(teacher, index) in tagOptions.teachers" :key="teacher" 
+                  class="bg-slate-100 border px-3 py-1 rounded-full text-sm flex items-center space-x-2">
+              <span>{{ teacher }}</span>
+              <button @click="removeTag('teachers', index)" class="text-red-500 hover:text-red-700 font-bold text-xs">✕</button>
+            </span>
+          </div>
+          <div class="flex space-x-2">
+            <input type="text" v-model="newTeacherInput" placeholder="新增老師名稱..." class="flex-1 border rounded px-3 py-1 text-sm">
+            <button @click="addTag('teachers', newTeacherInput); newTeacherInput=''" class="bg-sky-600 text-white px-3 py-1 rounded text-sm hover:bg-sky-700">新增</button>
+          </div>
+        </div>
+
+        <div class="text-right pt-3 border-t">
+          <button @click="showTagModal = false" class="bg-slate-700 text-white px-4 py-2 rounded text-sm font-medium hover:bg-slate-800">完成關閉</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -158,7 +283,6 @@
 
     createApp({
       setup() {
-        // 側邊選單列表
         const tabs = ref([
           { id: 'official_doc', name: '一、重要公文' },
           { id: 'grade_meeting', name: '二、學年會議' },
@@ -169,60 +293,76 @@
           { id: 'graduation_ceremony', name: '七、畢業典禮' }
         ]);
 
-        // 當前選中的分頁
         const currentTab = ref('official_doc');
+        const showTagModal = ref(false);
 
-        // 上方可自由編輯的全域標籤狀態
+        // 可自由新增刪除的標籤選項清單
+        const tagOptions = ref({
+          departments: ['教務處', '學務處', '總務處', '輔導室'],
+          assignees: ['王老師', '李老師', '陳老師'],
+          teachers: ['王老師', '李老師', '陳老師', '林老師']
+        });
+
+        // 上方全域選取狀態
         const globalSettings = ref({
           department: '教務處',
           assignee: '王老師'
         });
 
-        // 公文表單資料
-        const docForm = ref({
-          date: '',
-          docNo: '',
-          subject: '',
-          description: '',
-          driveUrl: ''
-        });
+        // 各表單資料
+        const docForm = ref({ date: '', docNo: '', subject: '', description: '', driveUrl: '' });
+        const meetingForm = ref({ date: '', subject: '', description: '', reply: '', driveUrl: '', status: 'yellow' });
+        const examForm = ref({ semester: '上學期', subjectName: '國語', examType: '期中考', teacher: '王老師', range: '', description: '', driveUrl: '' });
 
-        // 會議表單資料
-        const meetingForm = ref({
-          date: '',
-          subject: '',
-          description: '',
-          reply: '',
-          driveUrl: '',
-          status: 'yellow' // 預設黃燈
-        });
+        // 新增標籤輸入暫存
+        const newDeptInput = ref('');
+        const newAssigneeInput = ref('');
+        const newTeacherInput = ref('');
 
-        // 提交公文
-        const submitOfficialDoc = () => {
-          console.log("送出公文：", {
-            ...globalSettings.value,
-            ...docForm.value
-          });
-          alert("【模擬】重要公文資料已暫存！稍後我們將把這裡接上 GAS 傳送後端。");
+        // 新增標籤邏輯
+        const addTag = (category, value) => {
+          if (!value || !value.trim()) return;
+          if (tagOptions.value[category].includes(value.trim())) {
+            alert('此標籤已存在！');
+            return;
+          }
+          tagOptions.value[category].push(value.trim());
         };
 
-        // 提交會議
-        const submitMeeting = () => {
-          console.log("送出會議：", {
+        // 刪除標籤邏輯
+        const removeTag = (category, index) => {
+          if (tagOptions.value[category].length <= 1) {
+            alert('至少必須保留一個標籤！');
+            return;
+          }
+          tagOptions.value[category].splice(index, 1);
+        };
+
+        // 通用送出函式（結合上方全域標籤與表單內容）
+        const submitForm = (formName, formData) => {
+          const finalData = {
             ...globalSettings.value,
-            ...meetingForm.value
-          });
-          alert("【模擬】學年會議資料已暫存！稍後我們將把這裡接上 GAS 傳送後端。");
+            ...formData
+          };
+          console.log(`送出 [${formName}] 資料：`, finalData);
+          alert(`【模擬】${formName} 資料已暫存！\n帶入單位：${finalData.department}\n帶入人員：${finalData.assignee}`);
         };
 
         return {
           tabs,
           currentTab,
+          showTagModal,
+          tagOptions,
           globalSettings,
           docForm,
           meetingForm,
-          submitOfficialDoc,
-          submitMeeting
+          examForm,
+          newDeptInput,
+          newAssigneeInput,
+          newTeacherInput,
+          addTag,
+          removeTag,
+          submitForm
         };
       }
     }).mount('#app');
