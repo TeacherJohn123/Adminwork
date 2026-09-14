@@ -3,224 +3,226 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>行政工作輔助系統</title>
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <title>行政工作系統紀錄規劃</title>
+  <!-- 引入 Tailwind CSS 樣式 -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 引入 Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen p-6">
-  <div id="app" class="max-w-7xl mx-auto space-y-6">
+<body class="bg-gray-100 text-gray-800">
+
+  <div id="app" class="flex h-screen overflow-hidden">
     
-    <!-- 標題與同步狀態 -->
-    <header class="bg-white rounded-lg shadow p-6 flex justify-between items-center">
+    <!-- 左側選單 Sidebar -->
+    <aside class="w-64 bg-slate-800 text-white flex flex-col justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-800">🏫 行政工作輔助系統</h1>
-        <p class="text-sm text-gray-500 mt-1">本機快取 ＋ 雲端 Drive JSON 雙軌同步</p>
-      </div>
-      <div class="flex items-center space-x-3">
-        <span class="text-sm font-bold" :class="syncStatusColor">{{ syncStatusText }}</span>
-        <button @click="triggerCloudSync" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg text-sm transition">
-          🔄 強制同步雲端
-        </button>
-      </div>
-    </header>
-
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      
-      <!-- 左側：四大模組分類 -->
-      <div class="lg:col-span-1 space-y-2">
-        <div v-for="category in categories" :key="category" 
-             @click="currentCategory = category"
-             class="p-4 rounded-lg cursor-pointer font-bold transition shadow-sm"
-             :class="currentCategory === category ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-indigo-50'">
-          {{ category }}
+        <div class="p-5 text-xl font-bold tracking-wider border-b border-slate-700">
+          🏫 行政工作紀錄系統
         </div>
+        <nav class="mt-4 space-y-1">
+          <button v-for="tab in tabs" :key="tab.id"
+                  @click="currentTab = tab.id"
+                  :class="['w-full text-left px-5 py-3 text-sm font-medium transition-colors', 
+                           currentTab === tab.id ? 'bg-sky-600 text-white' : 'text-slate-300 hover:bg-slate-700 hover:text-white']">
+            {{ tab.name }}
+          </button>
+        </nav>
       </div>
+      <div class="p-4 text-xs text-slate-400 border-t border-slate-700 text-center">
+        文華國小 5年級行政系統
+      </div>
+    </aside>
 
-      <!-- 右側：新增與列表 -->
-      <div class="lg:col-span-3 space-y-6">
+    <!-- 右側主要內容區 Main Content -->
+    <main class="flex-1 flex flex-col overflow-y-auto">
+      
+      <!-- 上方頂部列 (包含可自由編輯的標籤) -->
+      <header class="bg-white shadow-sm px-8 py-4 flex justify-between items-center border-b">
+        <h1 class="text-xl font-bold text-slate-700">
+          {{ tabs.find(t => t.id === currentTab).name }}
+        </h1>
         
-        <!-- 新增案件表單 -->
-        <section class="bg-white rounded-lg shadow p-6 border-t-4 border-indigo-500">
-          <h2 class="text-lg font-bold text-gray-700 mb-4">➕ 新增 [{{ currentCategory }}] 紀錄</h2>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-xs font-bold text-gray-600 mb-1">事件主旨</label>
-              <input v-model="newTask.subject" type="text" placeholder="輸入主旨..." class="w-full border p-2 rounded text-sm">
-            </div>
+        <!-- 自由編輯標籤區 -->
+        <div class="flex items-center space-x-4 bg-slate-50 p-2 rounded-lg border">
+          <div class="flex items-center space-x-2">
+            <label class="text-xs font-semibold text-slate-500">承辦單位:</label>
+            <input type="text" v-model="globalSettings.department" 
+                   class="px-2 py-1 text-sm border rounded bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 w-28">
+          </div>
+          <div class="flex items-center space-x-2">
+            <label class="text-xs font-semibold text-slate-500">承辦人員:</label>
+            <input type="text" v-model="globalSettings.assignee" 
+                   class="px-2 py-1 text-sm border rounded bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 w-24">
+          </div>
+        </div>
+      </header>
+
+      <!-- 內容動態切換區 -->
+      <div class="p-8 max-w-5xl w-full mx-auto">
+        
+        <!-- 一、重要公文 -->
+        <section v-if="currentTab === 'official_doc'" class="bg-white rounded-xl shadow-sm p-6 border">
+          <h2 class="text-lg font-bold mb-4 text-slate-700 border-b pb-2">➕ 新增重要公文紀錄</h2>
+          <form @submit.prevent="submitOfficialDoc" class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-bold text-gray-600 mb-1">承辦單位</label>
-                <input v-model="newTask.unit" type="text" placeholder="例：教務處" class="w-full border p-2 rounded text-sm">
+                <label class="block text-sm font-medium text-gray-700 mb-1">公文發出日期</label>
+                <input type="date" v-model="docForm.date" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
               </div>
               <div>
-                <label class="block text-xs font-bold text-gray-600 mb-1">負責人</label>
-                <input v-model="newTask.person" type="text" placeholder="例：王小明" class="w-full border p-2 rounded text-sm">
+                <label class="block text-sm font-medium text-gray-700 mb-1">張貼公文文號</label>
+                <input type="text" v-model="docForm.docNo" placeholder="例如：投教字第11200000號" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
               </div>
             </div>
             <div>
-              <label class="block text-xs font-bold text-gray-600 mb-1">辦理情形</label>
-              <div class="flex space-x-2">
-                <label class="flex-1 text-center py-2 rounded border cursor-pointer" :class="newTask.status === '綠燈' ? 'bg-green-100 border-green-500' : 'bg-gray-50'">
-                  <input type="radio" v-model="newTask.status" value="綠燈" class="hidden"> 🟢 綠燈
-                </label>
-                <label class="flex-1 text-center py-2 rounded border cursor-pointer" :class="newTask.status === '黃燈' ? 'bg-yellow-100 border-yellow-500' : 'bg-gray-50'">
-                  <input type="radio" v-model="newTask.status" value="黃燈" class="hidden"> 🟡 黃燈
-                </label>
-                <label class="flex-1 text-center py-2 rounded border cursor-pointer" :class="newTask.status === '紅燈' ? 'bg-red-100 border-red-500' : 'bg-gray-50'">
-                  <input type="radio" v-model="newTask.status" value="紅燈" class="hidden"> 🔴 紅燈
-                </label>
-              </div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">公文主旨</label>
+              <input type="text" v-model="docForm.subject" placeholder="請輸入公文主旨" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
             </div>
-            <button @click="saveRecord" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition">
-              💾 儲存並同步
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">公文說明</label>
+              <textarea rows="3" v-model="docForm.description" placeholder="請輸入說明內容..." class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500"></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">公文雲端硬碟連結</label>
+              <input type="url" v-model="docForm.driveUrl" placeholder="https://drive.google.com/..." class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
+            </div>
+            <button type="submit" class="bg-sky-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
+              儲存公文紀錄
             </button>
-          </div>
+          </form>
         </section>
 
-        <!-- 案件列表 -->
-        <section class="bg-white rounded-lg shadow p-6">
-          <h2 class="text-lg font-bold text-gray-700 mb-4">📋 案件進度清單</h2>
-          <div class="space-y-3">
-            <div v-for="r in filteredRecords" :key="r.id" class="p-4 rounded border-l-4 shadow-sm bg-gray-50 flex justify-between items-center"
-                 :class="{'border-green-500': r.status==='綠燈', 'border-yellow-500': r.status==='黃燈', 'border-red-500': r.status==='紅燈'}">
+        <!-- 二、學年會議 -->
+        <section v-if="currentTab === 'grade_meeting'" class="bg-white rounded-xl shadow-sm p-6 border">
+          <h2 class="text-lg font-bold mb-4 text-slate-700 border-b pb-2">➕ 新增學年會議提案</h2>
+          <form @submit.prevent="submitMeeting" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
               <div>
-                <span class="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded mr-2">{{ r.date }}</span>
-                <span class="font-bold text-gray-800">{{ r.subject }}</span>
-                <div class="text-xs text-gray-500 mt-2">承辦：{{ r.unit }} | 負責人：{{ r.person }}</div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">會議日期</label>
+                <input type="date" v-model="meetingForm.date" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
               </div>
-              <button @click="deleteRecord(r.id)" class="text-red-500 hover:bg-red-100 px-2 py-1 rounded text-xs">刪除</button>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">提案狀態 (紅黃綠燈)</label>
+                <div class="flex space-x-3 pt-1">
+                  <button type="button" @click="meetingForm.status = 'red'" 
+                          :class="['px-3 py-1 rounded text-xs font-bold transition-all', meetingForm.status === 'red' ? 'bg-red-500 text-white ring-2 ring-red-300' : 'bg-red-100 text-red-600']">
+                    🔴 未處理/卡關
+                  </button>
+                  <button type="button" @click="meetingForm.status = 'yellow'" 
+                          :class="['px-3 py-1 rounded text-xs font-bold transition-all', meetingForm.status === 'yellow' ? 'bg-amber-500 text-white ring-2 ring-amber-300' : 'bg-amber-100 text-amber-600']">
+                    🟡 處理中
+                  </button>
+                  <button type="button" @click="meetingForm.status = 'green'" 
+                          :class="['px-3 py-1 rounded text-xs font-bold transition-all', meetingForm.status === 'green' ? 'bg-emerald-500 text-white ring-2 ring-emerald-300' : 'bg-emerald-100 text-emerald-600']">
+                    🟢 已解決/結案
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">學年提案主旨</label>
+              <input type="text" v-model="meetingForm.subject" placeholder="請輸入提案主旨" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">提案說明</label>
+              <textarea rows="3" v-model="meetingForm.description" placeholder="請詳細說明提案內容..." class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500"></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">學校行政端回覆</label>
+              <textarea rows="2" v-model="meetingForm.reply" placeholder="行政端回覆內容..." class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500"></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">雲端硬碟連結</label>
+              <input type="url" v-model="meetingForm.driveUrl" placeholder="https://drive.google.com/..." class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
+            </div>
+            <button type="submit" class="bg-sky-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
+              儲存會議紀錄
+            </button>
+          </form>
         </section>
+
+        <!-- 三~七 待討論分頁 -->
+        <section v-else class="bg-white rounded-xl shadow-sm p-12 text-center border">
+          <div class="text-4xl mb-3">🚧</div>
+          <h2 class="text-xl font-bold text-slate-700 mb-2">{{ tabs.find(t => t.id === currentTab).name }}</h2>
+          <p class="text-gray-500 text-sm">此功能模組正在規劃中，稍後我們將一起討論並建置此區塊！</p>
+        </section>
+
       </div>
-    </div>
+    </main>
+
   </div>
 
   <script>
-    const { createApp, ref, computed, onMounted } = Vue;
+    const { createApp, ref } = Vue;
 
     createApp({
       setup() {
-        const categories = ['公文法規', '行政決議', '學年會議', '建議討論'];
-        const currentCategory = ref(categories[0]);
-        const records = ref([]);
-        
-        const syncStatus = ref('idle'); // idle, syncing, synced, error
-        const lastSyncTime = ref('');
+        // 側邊選單列表
+        const tabs = ref([
+          { id: 'official_doc', name: '一、重要公文' },
+          { id: 'grade_meeting', name: '二、學年會議' },
+          { id: 'exam_record', name: '三、學年出題記錄' },
+          { id: 'duty_roster', name: '四、學年工作輪流紀錄' },
+          { id: 'graduation_trip', name: '五、畢業旅行' },
+          { id: 'graduation_album', name: '六、畢業紀念冊' },
+          { id: 'graduation_ceremony', name: '七、畢業典禮' }
+        ]);
 
-        const newTask = ref({
+        // 當前選中的分頁
+        const currentTab = ref('official_doc');
+
+        // 上方可自由編輯的全域標籤狀態
+        const globalSettings = ref({
+          department: '教務處',
+          assignee: '王老師'
+        });
+
+        // 公文表單資料
+        const docForm = ref({
+          date: '',
+          docNo: '',
           subject: '',
-          unit: '',
-          person: '',
-          status: '黃燈'
+          description: '',
+          driveUrl: ''
         });
 
-        // 狀態文字與顏色
-        const syncStatusText = computed(() => {
-          if (syncStatus.value === 'idle') return '等待同步...';
-          if (syncStatus.value === 'syncing') return '🔄 雲端同步中...';
-          if (syncStatus.value === 'synced') return `✅ 已同步 (${lastSyncTime.value})`;
-          return '❌ 同步失敗 (離線模式)';
-        });
-        const syncStatusColor = computed(() => {
-          if (syncStatus.value === 'synced') return 'text-green-600';
-          if (syncStatus.value === 'error') return 'text-red-600';
-          return 'text-gray-500';
+        // 會議表單資料
+        const meetingForm = ref({
+          date: '',
+          subject: '',
+          description: '',
+          reply: '',
+          driveUrl: '',
+          status: 'yellow' // 預設黃燈
         });
 
-        const filteredRecords = computed(() => {
-          return records.value.filter(r => r.category === currentCategory.value).reverse();
-        });
-
-        // 1. 讀取本機資料 (第一步：秒開)
-        const loadLocalCache = () => {
-          const cached = localStorage.getItem('adminSystemData');
-          if (cached) {
-            try {
-              const parsed = JSON.parse(cached);
-              records.value = parsed.records || [];
-            } catch (e) {}
-          }
-        };
-
-        // 2. 從 Google Drive 拉取最新 JSON (第二步：雲端更新)
-        const fetchCloudData = () => {
-          syncStatus.value = 'syncing';
-          google.script.run.withSuccessHandler((responseStr) => {
-            try {
-              const json = JSON.parse(responseStr);
-              if (json.records) {
-                records.value = json.records;
-                localStorage.setItem('adminSystemData', JSON.stringify({ records: records.value }));
-                syncStatus.value = 'synced';
-                lastSyncTime.value = new Date().toLocaleTimeString('zh-TW');
-              }
-            } catch (e) {
-              syncStatus.value = 'error';
-            }
-          }).withFailureHandler((err) => {
-            syncStatus.value = 'error';
-          }).loadDataFromDrive();
-        };
-
-        // 3. 將資料寫入本機與雲端 JSON
-        const triggerCloudSync = () => {
-          syncStatus.value = 'syncing';
-          const dataStr = JSON.stringify({ records: records.value });
-          
-          // 寫入本地
-          localStorage.setItem('adminSystemData', dataStr);
-          
-          // 寫入雲端 Drive
-          google.script.run.withSuccessHandler((res) => {
-            const result = JSON.parse(res);
-            if (result.status === 'success') {
-              syncStatus.value = 'synced';
-              lastSyncTime.value = new Date().toLocaleTimeString('zh-TW');
-            } else {
-              syncStatus.value = 'error';
-            }
-          }).withFailureHandler((err) => {
-            syncStatus.value = 'error';
-          }).saveDataToDrive(dataStr);
-        };
-
-        // 新增案件
-        const saveRecord = () => {
-          if (!newTask.value.subject) return alert('請填寫主旨！');
-          records.value.push({
-            id: 'T_' + new Date().getTime(),
-            category: currentCategory.value,
-            date: new Date().toISOString().split('T')[0],
-            subject: newTask.value.subject,
-            unit: newTask.value.unit,
-            person: newTask.value.person,
-            status: newTask.value.status
+        // 提交公文
+        const submitOfficialDoc = () => {
+          console.log("送出公文：", {
+            ...globalSettings.value,
+            ...docForm.value
           });
-          
-          // 清空表單
-          newTask.value.subject = '';
-          
-          // 觸發雙軌儲存
-          triggerCloudSync();
+          alert("【模擬】重要公文資料已暫存！稍後我們將把這裡接上 GAS 傳送後端。");
         };
 
-        // 刪除案件
-        const deleteRecord = (id) => {
-          if (confirm('確定要刪除這筆紀錄嗎？')) {
-            records.value = records.value.filter(r => r.id !== id);
-            triggerCloudSync();
-          }
+        // 提交會議
+        const submitMeeting = () => {
+          console.log("送出會議：", {
+            ...globalSettings.value,
+            ...meetingForm.value
+          });
+          alert("【模擬】學年會議資料已暫存！稍後我們將把這裡接上 GAS 傳送後端。");
         };
-
-        onMounted(() => {
-          loadLocalCache(); // 先秒開本地資料
-          fetchCloudData(); // 再到背景去抓 Google Drive 最新檔案
-        });
 
         return {
-          categories, currentCategory, records, newTask, filteredRecords,
-          syncStatusText, syncStatusColor, saveRecord, deleteRecord, triggerCloudSync
+          tabs,
+          currentTab,
+          globalSettings,
+          docForm,
+          meetingForm,
+          submitOfficialDoc,
+          submitMeeting
         };
       }
     }).mount('#app');
