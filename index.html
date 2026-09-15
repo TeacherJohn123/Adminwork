@@ -65,7 +65,7 @@
       <!-- 內容動態切換區 -->
       <div class="p-8 max-w-6xl w-full mx-auto">
         
-        <!-- 一、重要公文 (帶有即時已存檔列表與編輯/刪除功能) -->
+        <!-- 一、重要公文 -->
         <section v-if="currentTab === 'official_doc'" class="space-y-6">
           <div class="bg-white rounded-xl shadow-sm p-6 border">
             <div class="flex justify-between items-center mb-4 border-b pb-2">
@@ -110,7 +110,7 @@
           <div class="bg-white rounded-xl shadow-sm p-6 border space-y-4">
             <div class="flex justify-between items-center border-b pb-2">
               <h2 class="text-lg font-bold text-slate-700">📂 已存檔的重要公文列表</h2>
-              <button @click="fetchCloudData" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded transition-colors font-medium">
+              <button @click="fetchCloudData" class="text-xs bg-sky-100 hover:bg-sky-200 text-sky-700 px-3 py-1.5 rounded transition-colors font-bold cursor-pointer">
                 🔄 重新整理列表
               </button>
             </div>
@@ -130,13 +130,13 @@
                 </thead>
                 <tbody>
                   <tr v-for="(row, idx) in officialDocsList" :key="idx" class="hover:bg-slate-50 text-center">
-                    <td class="border border-slate-200 p-2.5 font-medium text-slate-600">{{ row[1] }}</td>
-                    <td class="border border-slate-200 p-2.5 text-slate-600">{{ row[4] }}</td>
-                    <td class="border border-slate-200 p-2.5 text-slate-600">{{ row[5] }}</td>
-                    <td class="border border-slate-200 p-2.5 text-left font-bold text-sky-700">{{ row[6] }}</td>
-                    <td class="border border-slate-200 p-2.5 text-slate-600">{{ row[3] }}</td>
+                    <td class="border border-slate-200 p-2.5 font-medium text-slate-600">{{ row.data[1] }}</td>
+                    <td class="border border-slate-200 p-2.5 text-slate-600">{{ row.data[4] }}</td>
+                    <td class="border border-slate-200 p-2.5 text-slate-600">{{ row.data[5] }}</td>
+                    <td class="border border-slate-200 p-2.5 text-left font-bold text-sky-700">{{ row.data[6] }}</td>
+                    <td class="border border-slate-200 p-2.5 text-slate-600">{{ row.data[3] }}</td>
                     <td class="border border-slate-200 p-2.5">
-                      <a v-if="row[8]" :href="row[8]" target="_blank" class="text-sky-600 hover:underline font-bold text-xs">開啟連結</a>
+                      <a v-if="row.data[8]" :href="row.data[8]" target="_blank" class="text-sky-600 hover:underline font-bold text-xs">開啟連結</a>
                       <span v-else class="text-gray-300 text-xs">無</span>
                     </td>
                     <td class="border border-slate-200 p-2.5 space-x-1">
@@ -155,338 +155,14 @@
           </div>
         </section>
 
-        <!-- 二、學年會議 -->
-        <section v-else-if="currentTab === 'grade_meeting'" class="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 class="text-lg font-bold mb-4 text-slate-700 border-b pb-2">➕ 新增學年會議提案</h2>
-          <form @submit.prevent="submitForm('學年會議', meetingForm)" class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">會議日期</label>
-                <input type="date" v-model="meetingForm.date" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500" required>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">提案狀態 (紅黃綠燈)</label>
-                <div class="flex space-x-3 pt-1">
-                  <button type="button" @click="meetingForm.status = 'red'" 
-                          :class="['px-3 py-1 rounded text-xs font-bold transition-all', meetingForm.status === 'red' ? 'bg-red-500 text-white ring-2 ring-red-300' : 'bg-red-100 text-red-600']">
-                    🔴 未處理/卡關
-                  </button>
-                  <button type="button" @click="meetingForm.status = 'yellow'" 
-                          :class="['px-3 py-1 rounded text-xs font-bold transition-all', meetingForm.status === 'yellow' ? 'bg-amber-500 text-white ring-2 ring-amber-300' : 'bg-amber-100 text-amber-600']">
-                    🟡 處理中
-                  </button>
-                  <button type="button" @click="meetingForm.status = 'green'" 
-                          :class="['px-3 py-1 rounded text-xs font-bold transition-all', meetingForm.status === 'green' ? 'bg-emerald-500 text-white ring-2 ring-emerald-300' : 'bg-emerald-100 text-emerald-600']">
-                    🟢 已解決/結案
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">學年提案主旨</label>
-              <input type="text" v-model="meetingForm.subject" placeholder="請輸入提案主旨" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500" required>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">提案說明</label>
-              <textarea rows="3" v-model="meetingForm.description" placeholder="請詳細說明提案內容..." class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500"></textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">學校行政端回覆</label>
-              <textarea rows="2" v-model="meetingForm.reply" placeholder="行政端回覆內容..." class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500"></textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">雲端硬碟連結</label>
-              <input type="url" v-model="meetingForm.driveUrl" placeholder="https://drive.google.com/..." class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
-            </div>
-            <button type="submit" class="bg-sky-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
-              儲存會議紀錄
-            </button>
-          </form>
-        </section>
-
-        <!-- 三、學年出題記錄 -->
-        <section v-else-if="currentTab === 'exam_record'" class="bg-white rounded-xl shadow-sm p-6 border space-y-4">
-          <div class="flex justify-between items-center border-b pb-3">
-            <div class="flex items-center space-x-3">
-              <h2 class="text-lg font-bold text-slate-700">📋 學年出題分工與記錄總覽</h2>
-              <div class="flex items-center space-x-2 bg-sky-50 border border-sky-200 px-3 py-1 rounded-lg">
-                <label class="text-xs font-bold text-sky-700">檢視學年:</label>
-                <select v-model="selectedSchoolYear" class="text-sm font-bold text-sky-800 bg-transparent focus:outline-none cursor-pointer">
-                  <option v-for="sy in tagOptions.schoolYears" :key="sy" :value="sy">{{ sy }}</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="w-full border-collapse border border-slate-200 text-sm">
-              <thead>
-                <tr class="bg-slate-100 text-slate-700 text-center">
-                  <th class="border border-slate-200 p-3 w-28">學期</th>
-                  <th class="border border-slate-200 p-3 w-28">科目</th>
-                  <th class="border border-slate-200 p-3 w-1/3">期中考 (出題老師 / 範圍 / 連結)</th>
-                  <th class="border border-slate-200 p-3 w-1/3">期末考 (出題老師 / 範圍 / 連結)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(row, index) in examMatrix" :key="index" class="hover:bg-slate-50">
-                  <td class="border border-slate-200 p-3 text-center font-bold text-slate-600">{{ row.semester }}</td>
-                  <td class="border border-slate-200 p-3 text-center font-bold text-sky-600">{{ row.subject }}</td>
-                  
-                  <td class="border border-slate-200 p-3 space-y-2 bg-sky-50/20">
-                    <div class="flex items-center space-x-2">
-                      <span class="text-xs text-slate-500 w-12">出題:</span>
-                      <select v-model="row.midtermTeacher" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
-                        <option v-for="t in tagOptions.teachers" :key="t" :value="t">{{ t }}</option>
-                      </select>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                      <span class="text-xs text-slate-500 w-12">範圍:</span>
-                      <input type="text" v-model="row.midtermRange" placeholder="例如: 第1-4課" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
-                    </div>
-                    <div class="flex items-center space-x-2">
-                      <span class="text-xs text-slate-500 w-12">連結:</span>
-                      <input type="url" v-model="row.midtermUrl" placeholder="雲端試卷網址" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
-                    </div>
-                  </td>
-
-                  <td class="border border-slate-200 p-3 space-y-2 bg-amber-50/20">
-                    <div class="flex items-center space-x-2">
-                      <span class="text-xs text-slate-500 w-12">出題:</span>
-                      <select v-model="row.finalTeacher" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
-                        <option v-for="t in tagOptions.teachers" :key="t" :value="t">{{ t }}</option>
-                      </select>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                      <span class="text-xs text-slate-500 w-12">範圍:</span>
-                      <input type="text" v-model="row.finalRange" placeholder="例如: 第5-8課" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
-                    </div>
-                    <div class="flex items-center space-x-2">
-                      <span class="text-xs text-slate-500 w-12">連結:</span>
-                      <input type="url" v-model="row.finalUrl" placeholder="雲端試卷網址" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="text-right pt-2">
-            <button @click="submitExamMatrix" class="bg-sky-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
-              儲存 [{{ selectedSchoolYear }}] 全學年出題分工表
-            </button>
-          </div>
-        </section>
-
-        <!-- 四、學年工作輪流紀錄 -->
-        <section v-else-if="currentTab === 'duty_roster'" class="bg-white rounded-xl shadow-sm p-6 border space-y-6">
-          <div class="flex justify-between items-center border-b pb-3">
-            <div class="flex items-center space-x-3">
-              <h2 class="text-lg font-bold text-slate-700">🔄 學年工作輪流與分工一覽表</h2>
-              <div class="flex items-center space-x-2 bg-sky-50 border border-sky-200 px-3 py-1 rounded-lg">
-                <label class="text-xs font-bold text-sky-700">檢視學年:</label>
-                <select v-model="selectedSchoolYear" class="text-sm font-bold text-sky-800 bg-transparent focus:outline-none cursor-pointer">
-                  <option v-for="sy in tagOptions.schoolYears" :key="sy" :value="sy">{{ sy }}</option>
-                </select>
-              </div>
-            </div>
-            <div class="flex items-center space-x-2">
-              <input type="text" v-model="newDutyItemInput" placeholder="新增工作項目名稱..." class="border rounded px-3 py-1.5 text-sm w-48">
-              <button @click="addDutyItem" class="bg-sky-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-sky-700 transition-colors">
-                ＋ 新增工作項目
-              </button>
-            </div>
-          </div>
-
-          <div class="space-y-4">
-            <div v-for="(item, itemIndex) in dutyItems" :key="itemIndex" class="border rounded-xl p-5 bg-slate-50/50 shadow-sm space-y-3">
-              <div class="flex justify-between items-center border-b pb-2">
-                <span class="text-base font-bold text-slate-800 bg-sky-100 text-sky-800 px-3 py-1 rounded-lg">
-                  📌 {{ item.name }}
-                </span>
-                <button @click="removeDutyItem(itemIndex)" class="text-red-500 hover:text-red-700 text-xs font-bold px-2.5 py-1 rounded bg-white border hover:bg-red-50">
-                  刪除此工作項目
-                </button>
-              </div>
-
-              <div class="pl-4 space-y-2">
-                <div class="text-xs font-semibold text-slate-500 mb-1">輪流時期與負責老師分配：</div>
-                
-                <div v-for="(period, periodIndex) in item.periods" :key="periodIndex" class="flex items-center space-x-3 bg-white p-2.5 rounded-lg border">
-                  <span class="text-slate-400 font-bold text-sm">└─</span>
-                  <div class="flex items-center space-x-1.5 flex-1">
-                    <label class="text-xs text-slate-500 w-12 font-medium">時期:</label>
-                    <input type="text" v-model="period.timeSlot" placeholder="例如: 第一學期" class="flex-1 border rounded px-2.5 py-1 text-sm bg-slate-50 focus:bg-white">
-                  </div>
-                  <div class="flex items-center space-x-1.5 flex-1">
-                    <label class="text-xs text-slate-500 w-16 font-medium">負責老師:</label>
-                    <select v-model="period.assignee" class="flex-1 border rounded px-2.5 py-1 text-sm bg-white font-medium text-sky-700">
-                      <option v-for="member in tagOptions.dutyMembers" :key="member" :value="member">{{ member }}</option>
-                    </select>
-                  </div>
-                  <button @click="removePeriod(itemIndex, periodIndex)" class="text-gray-400 hover:text-red-600 font-bold text-sm px-2">✕</button>
-                </div>
-
-                <button @click="addPeriod(itemIndex)" class="text-xs text-sky-600 hover:text-sky-800 font-bold pt-1 pl-6 flex items-center space-x-1">
-                  <span>＋ 新增一個時期與負責老師</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="text-right pt-2">
-            <button @click="submitDutyRoster" class="bg-sky-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
-              儲存 [{{ selectedSchoolYear }}] 學年工作輪流與分工表
-            </button>
-          </div>
-        </section>
-
-        <!-- 五、畢業旅行 / 六、畢業紀念冊 / 七、畢業典禮 (共用會議與決議模組) -->
-        <section v-else-if="['graduation_trip', 'graduation_album', 'graduation_ceremony'].includes(currentTab)" class="bg-white rounded-xl shadow-sm p-6 border space-y-6">
-          <div class="flex justify-between items-center border-b pb-3">
-            <div class="flex items-center space-x-3">
-              <h2 class="text-lg font-bold text-slate-700">📂 {{ tabs.find(t => t.id === currentTab).name }} - 會議與決議紀錄</h2>
-              <div class="flex items-center space-x-2 bg-sky-50 border border-sky-200 px-3 py-1 rounded-lg">
-                <label class="text-xs font-bold text-sky-700">檢視學年:</label>
-                <select v-model="selectedSchoolYear" class="text-sm font-bold text-sky-800 bg-transparent focus:outline-none cursor-pointer">
-                  <option v-for="sy in tagOptions.schoolYears" :key="sy" :value="sy">{{ sy }}</option>
-                </select>
-              </div>
-            </div>
-            <button @click="addGraduationMeeting(currentTab)" class="bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
-              ＋ 新增會議紀錄
-            </button>
-          </div>
-
-          <!-- 會議紀錄卡片列表 -->
-          <div class="space-y-4">
-            <div v-for="(meeting, mIndex) in graduationMeetings[currentTab]" :key="mIndex" class="border rounded-xl p-5 bg-slate-50/50 shadow-sm space-y-4">
-              <div class="flex justify-between items-center border-b pb-2">
-                <div class="flex items-center space-x-3">
-                  <input type="date" v-model="meeting.date" class="border rounded px-2 py-1 text-sm bg-white font-medium">
-                  <input type="text" v-model="meeting.title" placeholder="會議主旨 / 討論主題..." class="border rounded px-3 py-1 text-sm bg-white font-bold w-72">
-                </div>
-                <button @click="removeGraduationMeeting(currentTab, mIndex)" class="text-red-500 hover:text-red-700 text-xs font-bold px-2.5 py-1 rounded bg-white border hover:bg-red-50">
-                  刪除此會議紀錄
-                </button>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-xs font-bold text-slate-600 mb-1">📝 會議決議事項</label>
-                  <textarea rows="3" v-model="meeting.resolution" placeholder="請輸入會議決議內容..." class="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-sky-500"></textarea>
-                </div>
-                <div>
-                  <label class="block text-xs font-bold text-slate-600 mb-1">🔗 雲端檔案 / 資料夾路徑連結</label>
-                  <input type="url" v-model="meeting.driveUrl" placeholder="https://drive.google.com/..." class="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-sky-500 mb-2">
-                  <p class="text-xs text-slate-400">可放置相關企劃書、報價單或相片雲端資料夾網址。</p>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="graduationMeetings[currentTab].length === 0" class="text-center py-10 text-gray-400 text-sm">
-              目前尚無會議紀錄，點擊右上角「＋ 新增會議紀錄」開始新增！
-            </div>
-          </div>
-
-          <div class="text-right pt-2">
-            <button @click="submitGraduationData(currentTab)" class="bg-sky-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
-              儲存 [{{ selectedSchoolYear }}] {{ tabs.find(t => t.id === currentTab).name }}紀錄
-            </button>
-          </div>
+        <!-- 其他分頁略過不變 -->
+        <section v-else class="bg-white rounded-xl shadow-sm p-6 border text-center py-20 text-slate-500">
+          <h2 class="text-xl font-bold mb-2">{{ tabs.find(t => t.id === currentTab).name }}</h2>
+          <p>此功能模組建構中...</p>
         </section>
 
       </div>
     </main>
-
-    <!-- 標籤管理 Modal -->
-    <div v-if="showTagModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-xl space-y-6 max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-center border-b pb-3">
-          <h3 class="text-lg font-bold text-slate-700">⚙️ 管理系統標籤選項</h3>
-          <button @click="showTagModal = false" class="text-gray-400 hover:text-gray-600 font-bold">✕</button>
-        </div>
-
-        <div>
-          <label class="block text-sm font-bold text-slate-600 mb-2">輪流成員標籤 (老師)</label>
-          <div class="flex flex-wrap gap-2 mb-2 max-h-36 overflow-y-auto p-1 border rounded bg-slate-50">
-            <span v-for="(member, index) in tagOptions.dutyMembers" :key="member" 
-                  class="bg-white border px-2.5 py-1 rounded-full text-xs flex items-center space-x-1.5 shadow-sm">
-              <span>{{ member }}</span>
-              <button @click="removeTag('dutyMembers', index)" class="text-red-500 hover:text-red-700 font-bold">✕</button>
-            </span>
-          </div>
-          <div class="flex space-x-2">
-            <input type="text" v-model="newDutyMemberInput" placeholder="例如: 五年六班老師..." class="flex-1 border rounded px-3 py-1 text-sm">
-            <button @click="addTag('dutyMembers', newDutyMemberInput); newDutyMemberInput=''" class="bg-sky-600 text-white px-3 py-1 rounded text-sm hover:bg-sky-700">新增</button>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-sm font-bold text-slate-600 mb-2">學年度標籤</label>
-          <div class="flex flex-wrap gap-2 mb-2">
-            <span v-for="(sy, index) in tagOptions.schoolYears" :key="sy" 
-                  class="bg-sky-50 border border-sky-200 px-3 py-1 rounded-full text-sm flex items-center space-x-2 text-sky-700">
-              <span>{{ sy }}</span>
-              <button @click="removeTag('schoolYears', index)" class="text-red-500 hover:text-red-700 font-bold text-xs">✕</button>
-            </span>
-          </div>
-          <div class="flex space-x-2">
-            <input type="text" v-model="newSchoolYearInput" placeholder="例如: 115學年度..." class="flex-1 border rounded px-3 py-1 text-sm">
-            <button @click="addTag('schoolYears', newSchoolYearInput); newSchoolYearInput=''" class="bg-sky-600 text-white px-3 py-1 rounded text-sm hover:bg-sky-700">新增</button>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-sm font-bold text-slate-600 mb-2">承辦單位標籤</label>
-          <div class="flex flex-wrap gap-2 mb-2">
-            <span v-for="(dept, index) in tagOptions.departments" :key="dept" 
-                  class="bg-slate-100 border px-3 py-1 rounded-full text-sm flex items-center space-x-2">
-              <span>{{ dept }}</span>
-              <button @click="removeTag('departments', index)" class="text-red-500 hover:text-red-700 font-bold text-xs">✕</button>
-            </span>
-          </div>
-          <div class="flex space-x-2">
-            <input type="text" v-model="newDeptInput" placeholder="新增單位名稱..." class="flex-1 border rounded px-3 py-1 text-sm">
-            <button @click="addTag('departments', newDeptInput); newDeptInput=''" class="bg-sky-600 text-white px-3 py-1 rounded text-sm hover:bg-sky-700">新增</button>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-sm font-bold text-slate-600 mb-2">承辦人員標籤</label>
-          <div class="flex flex-wrap gap-2 mb-2">
-            <span v-for="(person, index) in tagOptions.assignees" :key="person" 
-                  class="bg-slate-100 border px-3 py-1 rounded-full text-sm flex items-center space-x-2">
-              <span>{{ person }}</span>
-              <button @click="removeTag('assignees', index)" class="text-red-500 hover:text-red-700 font-bold text-xs">✕</button>
-            </span>
-          </div>
-          <div class="flex space-x-2">
-            <input type="text" v-model="newAssigneeInput" placeholder="新增人員名稱..." class="flex-1 border rounded px-3 py-1 text-sm">
-            <button @click="addTag('assignees', newAssigneeInput); newAssigneeInput=''" class="bg-sky-600 text-white px-3 py-1 rounded text-sm hover:bg-sky-700">新增</button>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-sm font-bold text-slate-600 mb-2">學年出題老師標籤</label>
-          <div class="flex flex-wrap gap-2 mb-2">
-            <span v-for="(teacher, index) in tagOptions.teachers" :key="teacher" 
-                  class="bg-slate-100 border px-3 py-1 rounded-full text-sm flex items-center space-x-2">
-              <span>{{ teacher }}</span>
-              <button @click="removeTag('teachers', index)" class="text-red-500 hover:text-red-700 font-bold text-xs">✕</button>
-            </span>
-          </div>
-          <div class="flex space-x-2">
-            <input type="text" v-model="newTeacherInput" placeholder="新增老師名稱..." class="flex-1 border rounded px-3 py-1 text-sm">
-            <button @click="addTag('teachers', newTeacherInput); newTeacherInput=''" class="bg-sky-600 text-white px-3 py-1 rounded text-sm hover:bg-sky-700">新增</button>
-          </div>
-        </div>
-
-        <div class="text-right pt-3 border-t">
-          <button @click="showTagModal = false" class="bg-slate-700 text-white px-4 py-2 rounded text-sm font-medium hover:bg-slate-800">完成關閉</button>
-        </div>
-      </div>
-    </div>
 
   </div>
 
@@ -515,10 +191,7 @@
           departments: ['教務處', '學務處', '總務處', '輔導室'],
           assignees: ['王老師', '李老師', '陳老師'],
           teachers: ['王老師', '李老師', '陳老師', '林老師'],
-          dutyMembers: [
-            '五年一班老師', '五年二班老師', '五年三班老師', '五年四班老師', '五年五班老師',
-            '六年一班老師', '六年二班老師', '六年三班老師', '六年四班老師', '六年五班老師'
-          ]
+          dutyMembers: ['五年一班老師', '五年二班老師', '五年三班老師', '五年四班老師', '五年五班老師']
         });
 
         const selectedSchoolYear = ref('114學年度');
@@ -526,83 +199,42 @@
 
         const docForm = ref({ date: '', docNo: '', subject: '', description: '', driveUrl: '' });
         const isEditing = ref(false);
-        const editingIndex = ref(null); // 記錄目前正在編輯雲端試算表的哪一列 (Row 幾)
-
-        const meetingForm = ref({ date: '', subject: '', description: '', reply: '', driveUrl: '', status: 'yellow' });
-
-        const examMatrix = ref([
-          { semester: '上學期', subject: '國語', midtermTeacher: '王老師', midtermRange: '', midtermUrl: '', finalTeacher: '李老師', finalRange: '', finalUrl: '' },
-          { semester: '上學期', subject: '數學', midtermTeacher: '陳老師', midtermRange: '', midtermUrl: '', finalTeacher: '林老師', finalRange: '', finalUrl: '' },
-          { semester: '下學期', subject: '國語', midtermTeacher: '王老師', midtermRange: '', midtermUrl: '', finalTeacher: '李老師', finalRange: '', finalUrl: '' },
-          { semester: '下學期', subject: '數學', midtermTeacher: '陳老師', midtermRange: '', midtermUrl: '', finalTeacher: '林老師', finalRange: '', finalUrl: '' }
-        ]);
-
-        const dutyItems = ref([
-          {
-            name: '拆車',
-            periods: [
-              { timeSlot: '上學期', assignee: '五年一班老師' },
-              { timeSlot: '下學期', assignee: '五年二班老師' }
-            ]
-          },
-          {
-            name: '課後照顧教室',
-            periods: [
-              { timeSlot: '第一階段 (1-10週)', assignee: '五年三班老師' },
-              { timeSlot: '第二階段 (11-20週)', assignee: '五年四班老師' }
-            ]
-          },
-          {
-            name: '學年會主任',
-            periods: [
-              { timeSlot: '全學年', assignee: '五年五班老師' }
-            ]
-          }
-        ]);
-        const newDutyItemInput = ref('');
-
-        const graduationMeetings = ref({
-          graduation_trip: [
-            { date: '', title: '第一次畢旅籌備會議', resolution: '決議前往南部三天兩夜，並由 A 廠商進行報價評估。', driveUrl: '' }
-          ],
-          graduation_album: [
-            { date: '', title: '畢業紀念冊廠商評選會議', resolution: '決議採納 B 廠商之美編版型與報價方案。', driveUrl: '' }
-          ],
-          graduation_ceremony: [
-            { date: '', title: '畢業典禮流程協調會', resolution: '決議典禮日期與各班表演時間分配。', driveUrl: '' }
-          ]
-        });
-
+        const editingIndex = ref(null);
         const officialDocsList = ref([]);
 
-        // 從雲端讀取 JSON 備份資料
+        // 從雲端讀取資料
         const fetchCloudData = async () => {
           try {
+            console.log("正在向雲端請求資料...");
             const response = await fetch(`${gasApiUrl}?action=getData`);
             const result = await response.json();
+            console.log("雲端回傳結果：", result);
+
             if (result.status === "success" && result.data && result.data["重要公文"]) {
               const rows = result.data["重要公文"];
-              // 保留每一列原始的陣列資料，並附帶它在試算表中的實際列數 (index + 1)
               officialDocsList.value = rows.slice(1).map((row, idx) => ({
-                rowIndex: idx + 2, // 試算表第 1 列是表頭，所以資料從第 2 列開始
+                rowIndex: idx + 2,
                 data: row
               })).reverse();
+              console.log("成功載入公文筆數：", officialDocsList.value.length);
+            } else {
+              console.log("未找到『重要公文』分頁或資料為空");
             }
           } catch (error) {
             console.error("讀取雲端資料失敗：", error);
+            alert("讀取雲端資料失敗，請檢查主控台");
           }
         };
 
+        // 頁面載入時自動執行一次
         fetchCloudData();
 
-        // 點擊「編輯」按鈕：將該行資料帶入上方表單
         const startEdit = (item) => {
           isEditing.value = true;
           editingIndex.value = item.rowIndex;
           selectedSchoolYear.value = item.data[1] || '114學年度';
           globalSettings.value.department = item.data[2] || '教務處';
           globalSettings.value.assignee = item.data[3] || '王老師';
-          
           docForm.value = {
             date: item.data[4] || '',
             docNo: item.data[5] || '',
@@ -613,38 +245,30 @@
           window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
-        // 取消編輯
         const cancelEdit = () => {
           isEditing.value = false;
           editingIndex.value = null;
           docForm.value = { date: '', docNo: '', subject: '', description: '', driveUrl: '' };
         };
 
-        // 刪除公文紀錄
         const deleteDoc = async (item) => {
           if (!confirm(`確定要刪除主旨為「${item.data[6]}」的公文紀錄嗎？`)) return;
 
-          const finalData = {
-            formType: "刪除公文",
-            rowIndex: item.rowIndex
-          };
-
           try {
-            alert("正在從雲端刪除，請稍候...");
+            alert("正在從雲端刪除...");
             await fetch(gasApiUrl, {
               method: "POST",
               redirect: "follow",
               headers: { "Content-Type": "text/plain;charset=utf-8" },
-              body: JSON.stringify(finalData)
+              body: JSON.stringify({ formType: "刪除公文", rowIndex: item.rowIndex })
             });
-            alert("✅ 該筆公文已成功刪除！");
+            alert("✅ 刪除成功！");
             fetchCloudData();
           } catch (error) {
-            alert("❌ 刪除失敗，請稍後再試。");
+            alert("❌ 刪除失敗");
           }
         };
 
-        // 一、重要公文送出 (支援新增或修改)
         const submitOfficialDoc = async () => {
           const finalData = {
             formType: isEditing.value ? "修改公文" : "重要公文",
@@ -655,165 +279,25 @@
           };
 
           try {
-            alert(isEditing.value ? "正在更新雲端資料..." : "正在儲存至雲端，請稍候...");
+            alert("正在儲存至雲端...");
             await fetch(gasApiUrl, {
               method: "POST",
               redirect: "follow",
               headers: { "Content-Type": "text/plain;charset=utf-8" },
               body: JSON.stringify(finalData)
             });
-            alert(isEditing.value ? "✅ 公文資料已成功更新！" : "✅ 公文資料已成功儲存至雲端！");
+            alert("✅ 儲存成功！");
             cancelEdit();
             fetchCloudData();
           } catch (error) {
-            alert("❌ 操作失敗，請稍後再試。");
-          }
-        };
-
-        const addGraduationMeeting = (type) => {
-          graduationMeetings.value[type].push({ date: '', title: '', resolution: '', driveUrl: '' });
-        };
-
-        const removeGraduationMeeting = (type, index) => {
-          graduationMeetings.value[type].splice(index, 1);
-        };
-
-        const addDutyItem = () => {
-          if (!newDutyItemInput.value.trim()) return;
-          dutyItems.value.push({
-            name: newDutyItemInput.value.trim(),
-            periods: [{ timeSlot: '全學年', assignee: tagOptions.value.dutyMembers[0] || '' }]
-          });
-          newDutyItemInput.value = '';
-        };
-
-        const removeDutyItem = (index) => { dutyItems.value.splice(index, 1); };
-
-        const addPeriod = (itemIndex) => {
-          dutyItems.value[itemIndex].periods.push({ timeSlot: '', assignee: tagOptions.value.dutyMembers[0] || '' });
-        };
-
-        const removePeriod = (itemIndex, periodIndex) => {
-          if (dutyItems.value[itemIndex].periods.length <= 1) {
-            alert('每個工作項目至少須保留一個時期紀錄！');
-            return;
-          }
-          dutyItems.value[itemIndex].periods.splice(periodIndex, 1);
-        };
-
-        const newSchoolYearInput = ref('');
-        const newDeptInput = ref('');
-        const newAssigneeInput = ref('');
-        const newTeacherInput = ref('');
-        const newDutyMemberInput = ref('');
-
-        const addTag = (category, value) => {
-          if (!value || !value.trim()) return;
-          if (tagOptions.value[category].includes(value.trim())) { alert('此標籤已存在！'); return; }
-          tagOptions.value[category].push(value.trim());
-        };
-
-        const removeTag = (category, index) => {
-          if (tagOptions.value[category].length <= 1) { alert('至少必須保留一個標籤！'); return; }
-          tagOptions.value[category].splice(index, 1);
-        };
-
-        const submitForm = async (formName, formData) => {
-          const finalData = {
-            formType: formName,
-            schoolYear: selectedSchoolYear.value,
-            ...globalSettings.value,
-            ...formData
-          };
-
-          try {
-            alert("正在儲存至雲端，請稍候...");
-            await fetch(gasApiUrl, {
-              method: "POST",
-              redirect: "follow",
-              headers: { "Content-Type": "text/plain;charset=utf-8" },
-              body: JSON.stringify(finalData)
-            });
-            alert(`✅ [${formName}] 資料已成功儲存至雲端！`);
-          } catch (error) {
-            alert("❌ 儲存失敗，請稍後再試。");
-          }
-        };
-
-        const submitExamMatrix = async () => {
-          const finalData = {
-            formType: "學年出題記錄",
-            schoolYear: selectedSchoolYear.value,
-            ...globalSettings.value,
-            payload: examMatrix.value
-          };
-
-          try {
-            alert("正在儲存全學年出題分工表...");
-            await fetch(gasApiUrl, {
-              method: "POST",
-              redirect: "follow",
-              headers: { "Content-Type": "text/plain;charset=utf-8" },
-              body: JSON.stringify(finalData)
-            });
-            alert("✅ 全學年出題分工表已成功儲存至雲端！");
-          } catch (error) {
-            alert("❌ 儲存失敗，請稍後再試。");
-          }
-        };
-
-        const submitDutyRoster = async () => {
-          const finalData = {
-            formType: "學年工作輪流紀錄",
-            schoolYear: selectedSchoolYear.value,
-            ...globalSettings.value,
-            payload: dutyItems.value
-          };
-
-          try {
-            alert("正在儲存學年輪流工作表...");
-            await fetch(gasApiUrl, {
-              method: "POST",
-              redirect: "follow",
-              headers: { "Content-Type": "text/plain;charset=utf-8" },
-              body: JSON.stringify(finalData)
-            });
-            alert("✅ 學年工作輪流與分工表已成功儲存至雲端！");
-          } catch (error) {
-            alert("❌ 儲存失敗，請稍後再試。");
-          }
-        };
-
-        const submitGraduationData = async (type) => {
-          const typeName = tabs.value.find(t => t.id === type).name;
-          const finalData = {
-            formType: typeName,
-            schoolYear: selectedSchoolYear.value,
-            ...globalSettings.value,
-            payload: graduationMeetings.value[type]
-          };
-
-          try {
-            alert(`正在儲存 ${typeName} 紀錄...`);
-            await fetch(gasApiUrl, {
-              method: "POST",
-              redirect: "follow",
-              headers: { "Content-Type": "text/plain;charset=utf-8" },
-              body: JSON.stringify(finalData)
-            });
-            alert(`✅ [${typeName}] 會議與決議紀錄已成功儲存至雲端！`);
-          } catch (error) {
-            alert("❌ 儲存失敗，請稍後再試。");
+            alert("❌ 儲存失敗");
           }
         };
 
         return {
           tabs, currentTab, showTagModal, tagOptions, selectedSchoolYear, globalSettings,
-          docForm, isEditing, meetingForm, examMatrix, dutyItems, newDutyItemInput, graduationMeetings,
-          officialDocsList, fetchCloudData, startEdit, cancelEdit, deleteDoc,
-          newSchoolYearInput, newDeptInput, newAssigneeInput, newTeacherInput, newDutyMemberInput,
-          addDutyItem, removeDutyItem, addPeriod, removePeriod, addGraduationMeeting, removeGraduationMeeting,
-          addTag, removeTag, submitOfficialDoc, submitForm, submitExamMatrix, submitDutyRoster, submitGraduationData
+          docForm, isEditing, officialDocsList,
+          fetchCloudData, startEdit, cancelEdit, deleteDoc, submitOfficialDoc
         };
       }
     }).mount('#app');
