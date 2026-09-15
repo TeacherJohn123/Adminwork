@@ -131,7 +131,8 @@
                 <tbody>
                   <tr v-for="(row, idx) in officialDocsList" :key="idx" class="hover:bg-slate-50 text-center">
                     <td class="border border-slate-200 p-2.5 font-medium text-slate-600">{{ row.data[1] }}</td>
-                    <td class="border border-slate-200 p-2.5 text-slate-600">{{ row.data[4] }}</td>
+                    <!-- 使用 formatDate 函式只顯示 YYYY-MM-DD -->
+                    <td class="border border-slate-200 p-2.5 text-slate-600">{{ formatDate(row.data[4]) }}</td>
                     <td class="border border-slate-200 p-2.5 text-slate-600">{{ row.data[5] }}</td>
                     <td class="border border-slate-200 p-2.5 text-left font-bold text-sky-700">{{ row.data[6] }}</td>
                     <td class="border border-slate-200 p-2.5 text-slate-600">{{ row.data[3] }}</td>
@@ -155,7 +156,7 @@
           </div>
         </section>
 
-        <!-- 其他分頁略過不變 -->
+        <!-- 其他分頁 -->
         <section v-else class="bg-white rounded-xl shadow-sm p-6 border text-center py-20 text-slate-500">
           <h2 class="text-xl font-bold mb-2">{{ tabs.find(t => t.id === currentTab).name }}</h2>
           <p>此功能模組建構中...</p>
@@ -202,13 +203,31 @@
         const editingIndex = ref(null);
         const officialDocsList = ref([]);
 
+        // 日期格式化工具：將長串時間字串轉為 YYYY-MM-DD
+        const formatDate = (dateStr) => {
+          if (!dateStr) return '';
+          // 如果本身就是字串且包含 T，取前 10 個字元
+          if (typeof dateStr === 'string' && dateStr.includes('T')) {
+            return dateStr.substring(0, 10);
+          }
+          // 如果是 JavaScript Date 物件或其他格式，嘗試轉字串處理
+          try {
+            const d = new Date(dateStr);
+            if (!isNaN(d.getTime())) {
+              const year = d.getFullYear();
+              const month = String(d.getMonth() + 1).padStart(2, '0');
+              const day = String(d.getDate()).padStart(2, '0');
+              return `${year}-${month}-${day}`;
+            }
+          } catch (e) {}
+          return dateStr;
+        };
+
         // 從雲端讀取資料
         const fetchCloudData = async () => {
           try {
-            console.log("正在向雲端請求資料...");
             const response = await fetch(`${gasApiUrl}?action=getData`);
             const result = await response.json();
-            console.log("雲端回傳結果：", result);
 
             if (result.status === "success" && result.data && result.data["重要公文"]) {
               const rows = result.data["重要公文"];
@@ -216,17 +235,12 @@
                 rowIndex: idx + 2,
                 data: row
               })).reverse();
-              console.log("成功載入公文筆數：", officialDocsList.value.length);
-            } else {
-              console.log("未找到『重要公文』分頁或資料為空");
             }
           } catch (error) {
             console.error("讀取雲端資料失敗：", error);
-            alert("讀取雲端資料失敗，請檢查主控台");
           }
         };
 
-        // 頁面載入時自動執行一次
         fetchCloudData();
 
         const startEdit = (item) => {
@@ -235,8 +249,10 @@
           selectedSchoolYear.value = item.data[1] || '114學年度';
           globalSettings.value.department = item.data[2] || '教務處';
           globalSettings.value.assignee = item.data[3] || '王老師';
+          
+          // 編輯時也確保帶入正確的 YYYY-MM-DD 日期格式給 input[type=date]
           docForm.value = {
-            date: item.data[4] || '',
+            date: formatDate(item.data[4]),
             docNo: item.data[5] || '',
             subject: item.data[6] || '',
             description: item.data[7] || '',
@@ -297,7 +313,7 @@
         return {
           tabs, currentTab, showTagModal, tagOptions, selectedSchoolYear, globalSettings,
           docForm, isEditing, officialDocsList,
-          fetchCloudData, startEdit, cancelEdit, deleteDoc, submitOfficialDoc
+          fetchCloudData, formatDate, startEdit, cancelEdit, deleteDoc, submitOfficialDoc
         };
       }
     }).mount('#app');
