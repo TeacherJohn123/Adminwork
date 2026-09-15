@@ -65,10 +65,18 @@
       <!-- 內容動態切換區 -->
       <div class="p-8 max-w-6xl w-full mx-auto">
         
-        <!-- 一、重要公文 (帶有即時已存檔列表) -->
+        <!-- 一、重要公文 (帶有即時已存檔列表與編輯/刪除功能) -->
         <section v-if="currentTab === 'official_doc'" class="space-y-6">
           <div class="bg-white rounded-xl shadow-sm p-6 border">
-            <h2 class="text-lg font-bold mb-4 text-slate-700 border-b pb-2">➕ 新增重要公文紀錄</h2>
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+              <h2 class="text-lg font-bold text-slate-700">
+                {{ isEditing ? '✏️ 編輯重要公文紀錄' : '➕ 新增重要公文紀錄' }}
+              </h2>
+              <button v-if="isEditing" @click="cancelEdit" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded font-medium">
+                取消編輯
+              </button>
+            </div>
+            
             <form @submit.prevent="submitOfficialDoc" class="space-y-4">
               <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -92,8 +100,8 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">公文雲端硬碟連結</label>
                 <input type="url" v-model="docForm.driveUrl" placeholder="https://drive.google.com/..." class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500">
               </div>
-              <button type="submit" class="bg-sky-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
-                儲存公文紀錄
+              <button type="submit" :class="['px-5 py-2 rounded-lg text-sm font-medium text-white transition-colors', isEditing ? 'bg-amber-600 hover:bg-amber-700' : 'bg-sky-600 hover:bg-sky-700']">
+                {{ isEditing ? '確認修改公文紀錄' : '儲存公文紀錄' }}
               </button>
             </form>
           </div>
@@ -117,6 +125,7 @@
                     <th class="border border-slate-200 p-2.5">主旨</th>
                     <th class="border border-slate-200 p-2.5">承辦人</th>
                     <th class="border border-slate-200 p-2.5">連結</th>
+                    <th class="border border-slate-200 p-2.5 w-28">操作</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -130,9 +139,13 @@
                       <a v-if="row[8]" :href="row[8]" target="_blank" class="text-sky-600 hover:underline font-bold text-xs">開啟連結</a>
                       <span v-else class="text-gray-300 text-xs">無</span>
                     </td>
+                    <td class="border border-slate-200 p-2.5 space-x-1">
+                      <button @click="startEdit(row)" class="bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 rounded text-xs font-medium">編輯</button>
+                      <button @click="deleteDoc(row)" class="bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 rounded text-xs font-medium">刪除</button>
+                    </td>
                   </tr>
                   <tr v-if="officialDocsList.length === 0">
-                    <td colspan="6" class="border border-slate-200 p-8 text-center text-gray-400">
+                    <td colspan="7" class="border border-slate-200 p-8 text-center text-gray-400">
                       目前尚無公文資料，或正在從雲端載入中...
                     </td>
                   </tr>
@@ -482,7 +495,6 @@
 
     createApp({
       setup() {
-        // 已更新為最新授權部署的 GAS API 網址
         const gasApiUrl = "https://script.google.com/macros/s/AKfycbysVhecRWKW_epCzggRFa_3QUxUDnGBawEnqgA22oc85AMG5LYjITLapYNO8w2gpxs/exec";
 
         const tabs = ref([
@@ -513,6 +525,9 @@
         const globalSettings = ref({ department: '教務處', assignee: '王老師' });
 
         const docForm = ref({ date: '', docNo: '', subject: '', description: '', driveUrl: '' });
+        const isEditing = ref(false);
+        const editingIndex = ref(null); // 記錄目前正在編輯雲端試算表的哪一列 (Row 幾)
+
         const meetingForm = ref({ date: '', subject: '', description: '', reply: '', driveUrl: '', status: 'yellow' });
 
         const examMatrix = ref([
@@ -558,25 +573,102 @@
           ]
         });
 
-        // 存放從雲端 JSON 讀回來的公文清單
         const officialDocsList = ref([]);
 
-        // 從雲端讀取 JSON 備份資料的函式 (方案 B)
+        // 從雲端讀取 JSON 備份資料
         const fetchCloudData = async () => {
           try {
             const response = await fetch(`${gasApiUrl}?action=getData`);
             const result = await response.json();
             if (result.status === "success" && result.data && result.data["重要公文"]) {
               const rows = result.data["重要公文"];
-              officialDocsList.value = rows.slice(1).reverse();
+              // 保留每一列原始的陣列資料，並附帶它在試算表中的實際列數 (index + 1)
+              officialDocsList.value = rows.slice(1).map((row, idx) => ({
+                rowIndex: idx + 2, // 試算表第 1 列是表頭，所以資料從第 2 列開始
+                data: row
+              })).reverse();
             }
           } catch (error) {
             console.error("讀取雲端資料失敗：", error);
           }
         };
 
-        // 頁面載入時自動讀取一次雲端資料
         fetchCloudData();
+
+        // 點擊「編輯」按鈕：將該行資料帶入上方表單
+        const startEdit = (item) => {
+          isEditing.value = true;
+          editingIndex.value = item.rowIndex;
+          selectedSchoolYear.value = item.data[1] || '114學年度';
+          globalSettings.value.department = item.data[2] || '教務處';
+          globalSettings.value.assignee = item.data[3] || '王老師';
+          
+          docForm.value = {
+            date: item.data[4] || '',
+            docNo: item.data[5] || '',
+            subject: item.data[6] || '',
+            description: item.data[7] || '',
+            driveUrl: item.data[8] || ''
+          };
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        // 取消編輯
+        const cancelEdit = () => {
+          isEditing.value = false;
+          editingIndex.value = null;
+          docForm.value = { date: '', docNo: '', subject: '', description: '', driveUrl: '' };
+        };
+
+        // 刪除公文紀錄
+        const deleteDoc = async (item) => {
+          if (!confirm(`確定要刪除主旨為「${item.data[6]}」的公文紀錄嗎？`)) return;
+
+          const finalData = {
+            formType: "刪除公文",
+            rowIndex: item.rowIndex
+          };
+
+          try {
+            alert("正在從雲端刪除，請稍候...");
+            await fetch(gasApiUrl, {
+              method: "POST",
+              redirect: "follow",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify(finalData)
+            });
+            alert("✅ 該筆公文已成功刪除！");
+            fetchCloudData();
+          } catch (error) {
+            alert("❌ 刪除失敗，請稍後再試。");
+          }
+        };
+
+        // 一、重要公文送出 (支援新增或修改)
+        const submitOfficialDoc = async () => {
+          const finalData = {
+            formType: isEditing.value ? "修改公文" : "重要公文",
+            rowIndex: editingIndex.value,
+            schoolYear: selectedSchoolYear.value,
+            ...globalSettings.value,
+            ...docForm.value
+          };
+
+          try {
+            alert(isEditing.value ? "正在更新雲端資料..." : "正在儲存至雲端，請稍候...");
+            await fetch(gasApiUrl, {
+              method: "POST",
+              redirect: "follow",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify(finalData)
+            });
+            alert(isEditing.value ? "✅ 公文資料已成功更新！" : "✅ 公文資料已成功儲存至雲端！");
+            cancelEdit();
+            fetchCloudData();
+          } catch (error) {
+            alert("❌ 操作失敗，請稍後再試。");
+          }
+        };
 
         const addGraduationMeeting = (type) => {
           graduationMeetings.value[type].push({ date: '', title: '', resolution: '', driveUrl: '' });
@@ -626,32 +718,6 @@
           tagOptions.value[category].splice(index, 1);
         };
 
-        // 一、重要公文送出 (儲存後自動重刷下方列表)
-        const submitOfficialDoc = async () => {
-          const finalData = {
-            formType: "重要公文",
-            schoolYear: selectedSchoolYear.value,
-            ...globalSettings.value,
-            ...docForm.value
-          };
-
-          try {
-            alert("正在儲存至雲端，請稍候...");
-            await fetch(gasApiUrl, {
-              method: "POST",
-              redirect: "follow",
-              headers: { "Content-Type": "text/plain;charset=utf-8" },
-              body: JSON.stringify(finalData)
-            });
-            alert("✅ 公文資料已成功儲存至雲端，並完成 JSON 備份！");
-            docForm.value = { date: '', docNo: '', subject: '', description: '', driveUrl: '' };
-            fetchCloudData(); // 即時重刷列表
-          } catch (error) {
-            alert("❌ 儲存失敗，請稍後再試。");
-          }
-        };
-
-        // 二、學年會議送出
         const submitForm = async (formName, formData) => {
           const finalData = {
             formType: formName,
@@ -674,7 +740,6 @@
           }
         };
 
-        // 三、出題矩陣送出
         const submitExamMatrix = async () => {
           const finalData = {
             formType: "學年出題記錄",
@@ -697,7 +762,6 @@
           }
         };
 
-        // 四、輪流紀錄送出
         const submitDutyRoster = async () => {
           const finalData = {
             formType: "學年工作輪流紀錄",
@@ -720,7 +784,6 @@
           }
         };
 
-        // 五、六、七畢業系列送出
         const submitGraduationData = async (type) => {
           const typeName = tabs.value.find(t => t.id === type).name;
           const finalData = {
@@ -746,8 +809,8 @@
 
         return {
           tabs, currentTab, showTagModal, tagOptions, selectedSchoolYear, globalSettings,
-          docForm, meetingForm, examMatrix, dutyItems, newDutyItemInput, graduationMeetings,
-          officialDocsList, fetchCloudData,
+          docForm, isEditing, meetingForm, examMatrix, dutyItems, newDutyItemInput, graduationMeetings,
+          officialDocsList, fetchCloudData, startEdit, cancelEdit, deleteDoc,
           newSchoolYearInput, newDeptInput, newAssigneeInput, newTeacherInput, newDutyMemberInput,
           addDutyItem, removeDutyItem, addPeriod, removePeriod, addGraduationMeeting, removeGraduationMeeting,
           addTag, removeTag, submitOfficialDoc, submitForm, submitExamMatrix, submitDutyRoster, submitGraduationData
