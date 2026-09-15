@@ -568,7 +568,6 @@
             const result = await response.json();
             if (result.status === "success" && result.data && result.data["重要公文"]) {
               const rows = result.data["重要公文"];
-              // 略過第一列標頭，反轉讓最新記錄排在最前面
               officialDocsList.value = rows.slice(1).reverse();
             }
           } catch (error) {
