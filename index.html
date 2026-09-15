@@ -437,6 +437,9 @@
 
     createApp({
       setup() {
+        // 您的 GAS 雲端後端 API 網址
+        const gasApiUrl = "https://script.google.com/macros/s/AKfycbwBhy8e6ts344alumnKryRcQILji0i5-EKDd86pffaJJRuOEiEf3iycZ_y-iltYBApd/exec";
+
         const tabs = ref([
           { id: 'official_doc', name: '一、重要公文' },
           { id: 'grade_meeting', name: '二、學年會議' },
@@ -498,7 +501,6 @@
         ]);
         const newDutyItemInput = ref('');
 
-        // 五、六、七 畢業系列會議紀錄狀態
         const graduationMeetings = ref({
           graduation_trip: [
             { date: '', title: '第一次畢旅籌備會議', resolution: '決議前往南部三天兩夜，並由 A 廠商進行報價評估。', driveUrl: '' }
@@ -559,12 +561,103 @@
           tagOptions.value[category].splice(index, 1);
         };
 
-        const submitForm = (formName, formData) => { alert(`【模擬】${formName} 資料已暫存！`); };
-        const submitExamMatrix = () => { alert(`【模擬】[${selectedSchoolYear.value}] 全學年出題分工表已成功暫存！`); };
-        const submitDutyRoster = () => { alert(`【模擬】[${selectedSchoolYear.value}] 學年工作輪流與分工表已成功暫存！`); };
-        const submitGraduationData = (type) => {
+        // 串接真實雲端傳送：一、二表單送出
+        const submitForm = async (formName, formData) => {
+          const finalData = {
+            formType: formName,
+            schoolYear: selectedSchoolYear.value,
+            ...globalSettings.value,
+            ...formData
+          };
+
+          try {
+            alert("正在儲存至雲端試算表，請稍候...");
+            const response = await fetch(gasApiUrl, {
+              method: "POST",
+              redirect: "follow",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify(finalData)
+            });
+            const result = await response.json();
+            if (result.status === "success") {
+              alert(`✅ [${formName}] 資料已成功儲存至雲端！`);
+            } else {
+              alert(`❌ 儲存失敗：${result.message}`);
+            }
+          } catch (error) {
+            console.error(error);
+            alert("❌ 網路連線錯誤，請檢查主控台或稍後再試。");
+          }
+        };
+
+        // 串接真實雲端傳送：三、出題矩陣送出
+        const submitExamMatrix = async () => {
+          const finalData = {
+            formType: "學年出題記錄",
+            schoolYear: selectedSchoolYear.value,
+            ...globalSettings.value,
+            payload: examMatrix.value
+          };
+
+          try {
+            alert("正在儲存全學年出題分工表...");
+            await fetch(gasApiUrl, {
+              method: "POST",
+              redirect: "follow",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify(finalData)
+            });
+            alert("✅ 全學年出題分工表已成功儲存至雲端！");
+          } catch (error) {
+            alert("❌ 儲存失敗，請稍後再試。");
+          }
+        };
+
+        // 串接真實雲端傳送：四、輪流紀錄送出
+        const submitDutyRoster = async () => {
+          const finalData = {
+            formType: "學年工作輪流紀錄",
+            schoolYear: selectedSchoolYear.value,
+            ...globalSettings.value,
+            payload: dutyItems.value
+          };
+
+          try {
+            alert("正在儲存學年輪流工作表...");
+            await fetch(gasApiUrl, {
+              method: "POST",
+              redirect: "follow",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify(finalData)
+            });
+            alert("✅ 學年工作輪流與分工表已成功儲存至雲端！");
+          } catch (error) {
+            alert("❌ 儲存失敗，請稍後再試。");
+          }
+        };
+
+        // 串接真實雲端傳送：五、六、七畢業系列送出
+        const submitGraduationData = async (type) => {
           const typeName = tabs.value.find(t => t.id === type).name;
-          alert(`【模擬】[${selectedSchoolYear.value}] ${typeName} 會議與決議紀錄已成功暫存！`);
+          const finalData = {
+            formType: typeName,
+            schoolYear: selectedSchoolYear.value,
+            ...globalSettings.value,
+            payload: graduationMeetings.value[type]
+          };
+
+          try {
+            alert(`正在儲存 ${typeName} 紀錄...`);
+            await fetch(gasApiUrl, {
+              method: "POST",
+              redirect: "follow",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify(finalData)
+            });
+            alert(`✅ [${typeName}] 會議與決議紀錄已成功儲存至雲端！`);
+          } catch (error) {
+            alert("❌ 儲存失敗，請稍後再試。");
+          }
         };
 
         return {
