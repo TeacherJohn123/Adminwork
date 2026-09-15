@@ -470,17 +470,17 @@
         </div>
 
         <div>
-          <label class="block text-sm font-bold text-slate-600 mb-2">輪流成員標籤 (老師)</label>
+          <label class="block text-sm font-bold text-slate-600 mb-2">承辦人員標籤 (含洪志林主任等)</label>
           <div class="flex flex-wrap gap-2 mb-2 max-h-36 overflow-y-auto p-1 border rounded bg-slate-50">
-            <span v-for="(member, index) in tagOptions.dutyMembers" :key="member" 
+            <span v-for="(person, index) in tagOptions.assignees" :key="person" 
                   class="bg-white border px-2.5 py-1 rounded-full text-xs flex items-center space-x-1.5 shadow-sm">
-              <span>{{ member }}</span>
-              <button @click="removeTag('dutyMembers', index)" class="text-red-500 hover:text-red-700 font-bold">✕</button>
+              <span>{{ person }}</span>
+              <button @click="removeTag('assignees', index)" class="text-red-500 hover:text-red-700 font-bold">✕</button>
             </span>
           </div>
           <div class="flex space-x-2">
-            <input type="text" v-model="newDutyMemberInput" placeholder="例如: 五年六班老師..." class="flex-1 border rounded px-3 py-1 text-sm">
-            <button @click="addTag('dutyMembers', newDutyMemberInput); newDutyMemberInput=''" class="bg-sky-600 text-white px-3 py-1 rounded text-sm hover:bg-sky-700">新增</button>
+            <input type="text" v-model="newAssigneeInput" placeholder="例如: 洪志林主任..." class="flex-1 border rounded px-3 py-1 text-sm">
+            <button @click="addTag('assignees', newAssigneeInput); newAssigneeInput=''" class="bg-sky-600 text-white px-3 py-1 rounded text-sm hover:bg-sky-700">新增</button>
           </div>
         </div>
 
@@ -530,8 +530,8 @@
         const tagOptions = ref({
           schoolYears: ['114學年度', '115學年度', '116學年度'],
           departments: ['教務處', '學務處', '總務處', '輔導室'],
-          assignees: ['王老師', '李老師', '陳老師'],
-          teachers: ['王老師', '李老師', '陳老師', '林老師'],
+          assignees: ['王老師', '李老師', '陳老師', '洪志林主任'], // 已在此處加入洪志林主任
+          teachers: ['王老師', '李老師', '陳老師', '林老師', '洪志林主任'],
           dutyMembers: [
             '五年一班老師', '五年二班老師', '五年三班老師', '五年四班老師', '五年五班老師',
             '六年一班老師', '六年二班老師', '六年三班老師', '六年四班老師', '六年五班老師'
@@ -688,7 +688,7 @@
         };
 
         const newSchoolYearInput = ref('');
-        const newDutyMemberInput = ref('');
+        const newAssigneeInput = ref('');
         const addTag = (cat, val) => { if (val && !tagOptions.value[cat].includes(val.trim())) tagOptions.value[cat].push(val.trim()); };
         const removeTag = (cat, idx) => tagOptions.value[cat].splice(idx, 1);
 
@@ -702,7 +702,7 @@
           startEditMeeting, cancelEditMeeting, deleteMeeting, submitMeeting,
           submitExamMatrix, addDutyItem, removeDutyItem, addPeriod, removePeriod, submitDutyRoster,
           addGraduationMeeting, removeGraduationMeeting, submitGraduationData,
-          newSchoolYearInput, newDutyMemberInput, addTag, removeTag
+          newSchoolYearInput, newAssigneeInput, addTag, removeTag
         };
       }
     }).mount('#app');
