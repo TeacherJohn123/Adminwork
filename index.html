@@ -266,7 +266,7 @@
           </div>
         </section>
 
-        <!-- 三、學年出題記錄 -->
+        <!-- 三、學年出題記錄 (完美修復表格呈現) -->
         <section v-else-if="currentTab === 'exam_record'" class="space-y-6">
           <div class="bg-white rounded-xl shadow-sm p-6 border">
             <div class="flex justify-between items-center mb-4 border-b pb-2">
@@ -308,7 +308,9 @@
                     </thead>
                     <tbody>
                       <tr v-for="(subj, sIdx) in examForm.subjects" :key="sIdx" class="hover:bg-slate-50">
-                        <td class="border border-slate-200 p-2.5 text-center font-bold text-sky-600">{{ subj.name }}</td>
+                        <td class="border border-slate-200 p-2.5 text-center font-bold text-sky-600">
+                          <input type="text" v-model="subj.name" class="w-20 text-center border rounded px-1 py-1 text-xs font-bold text-sky-700 bg-white">
+                        </td>
                         
                         <td class="border border-slate-200 p-2.5 space-y-2 bg-sky-50/20">
                           <div class="flex items-center space-x-2">
@@ -347,6 +349,9 @@
                     </tbody>
                   </table>
                 </div>
+                <button type="button" @click="examForm.subjects.push({ name: '新科目', midTeacher: tagOptions.teachers[0], midRange: '', midUrl: '', finalTeacher: tagOptions.teachers[0], finalRange: '', finalUrl: '' })" class="text-xs bg-slate-200 hover:bg-slate-300 px-3 py-1.5 rounded font-medium text-slate-700">
+                  ＋ 新增考試科目
+                </button>
               </div>
 
               <button type="submit" :class="['px-5 py-2 rounded-lg text-sm font-medium text-white transition-colors', isEditingExam ? 'bg-amber-600 hover:bg-amber-700' : 'bg-sky-600 hover:bg-sky-700']">
@@ -355,7 +360,7 @@
             </form>
           </div>
 
-          <!-- 已存檔出題記錄列表 -->
+          <!-- 已存檔出題記錄列表 (表格呈現) -->
           <div class="bg-white rounded-xl shadow-sm p-6 border space-y-4">
             <div class="flex justify-between items-center border-b pb-2">
               <h2 class="text-lg font-bold text-slate-700">📂 歷年學年出題記錄總覽列表</h2>
@@ -370,6 +375,7 @@
                   <div class="flex items-center space-x-3">
                     <span class="bg-sky-600 text-white px-3 py-1 rounded-lg text-sm font-bold">{{ record.data[1] }}</span>
                     <span class="bg-slate-200 text-slate-700 px-2.5 py-0.5 rounded text-xs font-bold">{{ record.data[4] }}</span>
+                    <span class="text-xs text-slate-400">承辦: {{ record.data[3] }}</span>
                   </div>
                   <div class="space-x-1">
                     <button @click="startEditExam(record)" class="bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 rounded text-xs font-medium">編輯</button>
@@ -396,13 +402,13 @@
                         <td class="border border-slate-200 p-2">{{ sub.midTeacher }}</td>
                         <td class="border border-slate-200 p-2">{{ sub.midRange || '無' }}</td>
                         <td class="border border-slate-200 p-2">
-                          <a v-if="sub.midUrl" :href="sub.midUrl" target="_blank" class="text-sky-600 underline font-bold">開啟</a>
+                          <a v-if="sub.midUrl" :href="sub.midUrl" target="_blank" class="text-sky-600 underline font-bold">開啟連結</a>
                           <span v-else class="text-gray-300">無</span>
                         </td>
                         <td class="border border-slate-200 p-2">{{ sub.finalTeacher }}</td>
                         <td class="border border-slate-200 p-2">{{ sub.finalRange || '無' }}</td>
                         <td class="border border-slate-200 p-2">
-                          <a v-if="sub.finalUrl" :href="sub.finalUrl" target="_blank" class="text-sky-600 underline font-bold">開啟</a>
+                          <a v-if="sub.finalUrl" :href="sub.finalUrl" target="_blank" class="text-sky-600 underline font-bold">開啟連結</a>
                           <span v-else class="text-gray-300">無</span>
                         </td>
                       </tr>
@@ -539,7 +545,7 @@
       </div>
     </main>
 
-    <!-- 標籤管理 Modal (修改後自動同步至雲端) -->
+    <!-- 標籤管理 Modal -->
     <div v-if="showTagModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div class="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl space-y-6 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center border-b pb-3">
@@ -720,25 +726,20 @@
           } catch (e) { return []; }
         };
 
-        // 從雲端讀取資料（含標籤設定）
         const fetchCloudData = async () => {
           try {
             const response = await fetch(`${gasApiUrl}?action=getData`);
             const result = await response.json();
             if (result.status === "success" && result.data) {
-              // 載入公文
               if (result.data["重要公文"]) {
                 officialDocsList.value = result.data["重要公文"].slice(1).map((row, idx) => ({ rowIndex: idx + 2, data: row })).reverse();
               }
-              // 載入會議
               if (result.data["學年會議"]) {
                 gradeMeetingsList.value = result.data["學年會議"].slice(1).map((row, idx) => ({ rowIndex: idx + 2, data: row })).reverse();
               }
-              // 載入出題記錄
               if (result.data["學年出題記錄"]) {
                 examRecordsList.value = result.data["學年出題記錄"].slice(1).map((row, idx) => ({ rowIndex: idx + 2, data: row })).reverse();
               }
-              // 載入獨立標籤設定
               if (result.data["系統設定"]) {
                 const sysRows = result.data["系統設定"];
                 for (let i = 1; i < sysRows.length; i++) {
@@ -758,12 +759,8 @@
 
         fetchCloudData();
 
-        // 儲存標籤至雲端
         const saveTagsToCloud = async () => {
-          const finalData = {
-            formType: "儲存標籤設定",
-            tagOptions: tagOptions.value
-          };
+          const finalData = { formType: "儲存標籤設定", tagOptions: tagOptions.value };
           try {
             alert("正在將標籤設定儲存至雲端...");
             await fetch(gasApiUrl, {
@@ -779,7 +776,6 @@
           }
         };
 
-        // ── 公文動作 ──
         const startEditDoc = (item) => {
           isEditingDoc.value = true;
           editingDocIndex.value = item.rowIndex;
@@ -801,7 +797,6 @@
           alert("✅ 儲存成功！"); cancelEditDoc(); fetchCloudData();
         };
 
-        // ── 會議動作 ──
         const startEditMeeting = (item) => {
           isEditingMeeting.value = true;
           editingMeetingIndex.value = item.rowIndex;
@@ -823,7 +818,6 @@
           alert("✅ 儲存成功！"); cancelEditMeeting(); fetchCloudData();
         };
 
-        // ── 出題記錄動作 ──
         const startEditExam = (item) => {
           isEditingExam.value = true;
           editingExamIndex.value = item.rowIndex;
@@ -859,7 +853,6 @@
           fetchCloudData();
         };
 
-        // ── 其他分頁動作 ──
         const addDutyItem = () => {
           if (!newDutyItemInput.value.trim()) return;
           dutyItems.value.push({ name: newDutyItemInput.value.trim(), periods: [{ timeSlot: '全學年', assignee: tagOptions.value.dutyMembers[0] }] });
