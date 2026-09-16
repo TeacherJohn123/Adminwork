@@ -461,32 +461,66 @@
       </div>
     </main>
 
-    <!-- 標籤管理 Modal -->
+    <!-- 標籤管理 Modal (獨立分類) -->
     <div v-if="showTagModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-xl space-y-6 max-h-[90vh] overflow-y-auto">
+      <div class="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl space-y-6 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center border-b pb-3">
-          <h3 class="text-lg font-bold text-slate-700">⚙️ 管理系統標籤選項</h3>
+          <h3 class="text-lg font-bold text-slate-700">⚙️ 獨立標籤管理中心</h3>
           <button @click="showTagModal = false" class="text-gray-400 hover:text-gray-600 font-bold">✕</button>
         </div>
 
-        <div>
-          <label class="block text-sm font-bold text-slate-600 mb-2">承辦人員標籤 (含洪志林主任等)</label>
-          <div class="flex flex-wrap gap-2 mb-2 max-h-36 overflow-y-auto p-1 border rounded bg-slate-50">
+        <!-- 1. 行政承辦人員 (公文/會議) -->
+        <div class="space-y-2 border-b pb-4">
+          <label class="block text-sm font-bold text-slate-700">1. 行政承辦人員標籤 (公文與會議用)</label>
+          <div class="flex flex-wrap gap-2 max-h-24 overflow-y-auto p-2 border rounded bg-slate-50">
             <span v-for="(person, index) in tagOptions.assignees" :key="person" 
-                  class="bg-white border px-2.5 py-1 rounded-full text-xs flex items-center space-x-1.5 shadow-sm">
+                  class="bg-white border px-2.5 py-1 rounded-full text-xs flex items-center space-x-1 shadow-sm">
               <span>{{ person }}</span>
-              <button @click="removeTag('assignees', index)" class="text-red-500 hover:text-red-700 font-bold">✕</button>
+              <button @click="removeTag('assignees', index)" class="text-red-500 hover:text-red-700 font-bold ml-1">✕</button>
             </span>
           </div>
           <div class="flex space-x-2">
-            <input type="text" v-model="newAssigneeInput" placeholder="例如: 洪志林主任..." class="flex-1 border rounded px-3 py-1 text-sm">
+            <input type="text" v-model="newAssigneeInput" placeholder="新增行政承辦人..." class="flex-1 border rounded px-3 py-1 text-sm">
             <button @click="addTag('assignees', newAssigneeInput); newAssigneeInput=''" class="bg-sky-600 text-white px-3 py-1 rounded text-sm hover:bg-sky-700">新增</button>
           </div>
         </div>
 
-        <div>
-          <label class="block text-sm font-bold text-slate-600 mb-2">學年度標籤</label>
-          <div class="flex flex-wrap gap-2 mb-2">
+        <!-- 2. 學年出題老師 (出題記錄) -->
+        <div class="space-y-2 border-b pb-4">
+          <label class="block text-sm font-bold text-slate-700">2. 學年出題老師標籤 (出題記錄用)</label>
+          <div class="flex flex-wrap gap-2 max-h-24 overflow-y-auto p-2 border rounded bg-slate-50">
+            <span v-for="(teacher, index) in tagOptions.teachers" :key="teacher" 
+                  class="bg-white border px-2.5 py-1 rounded-full text-xs flex items-center space-x-1 shadow-sm">
+              <span>{{ teacher }}</span>
+              <button @click="removeTag('teachers', index)" class="text-red-500 hover:text-red-700 font-bold ml-1">✕</button>
+            </span>
+          </div>
+          <div class="flex space-x-2">
+            <input type="text" v-model="newTeacherInput" placeholder="新增出題老師..." class="flex-1 border rounded px-3 py-1 text-sm">
+            <button @click="addTag('teachers', newTeacherInput); newTeacherInput=''" class="bg-sky-600 text-white px-3 py-1 rounded text-sm hover:bg-sky-700">新增</button>
+          </div>
+        </div>
+
+        <!-- 3. 學年工作輪流成員 (工作輪流紀錄) -->
+        <div class="space-y-2 border-b pb-4">
+          <label class="block text-sm font-bold text-slate-700">3. 學年工作輪流成員標籤 (輪流紀錄用)</label>
+          <div class="flex flex-wrap gap-2 max-h-28 overflow-y-auto p-2 border rounded bg-slate-50">
+            <span v-for="(member, index) in tagOptions.dutyMembers" :key="member" 
+                  class="bg-white border px-2.5 py-1 rounded-full text-xs flex items-center space-x-1 shadow-sm">
+              <span>{{ member }}</span>
+              <button @click="removeTag('dutyMembers', index)" class="text-red-500 hover:text-red-700 font-bold ml-1">✕</button>
+            </span>
+          </div>
+          <div class="flex space-x-2">
+            <input type="text" v-model="newDutyMemberInput" placeholder="新增輪流成員..." class="flex-1 border rounded px-3 py-1 text-sm">
+            <button @click="addTag('dutyMembers', newDutyMemberInput); newDutyMemberInput=''" class="bg-sky-600 text-white px-3 py-1 rounded text-sm hover:bg-sky-700">新增</button>
+          </div>
+        </div>
+
+        <!-- 4. 學年度標籤 -->
+        <div class="space-y-2 pb-2">
+          <label class="block text-sm font-bold text-slate-700">4. 學年度標籤</label>
+          <div class="flex flex-wrap gap-2">
             <span v-for="(sy, index) in tagOptions.schoolYears" :key="sy" 
                   class="bg-sky-50 border border-sky-200 px-3 py-1 rounded-full text-sm flex items-center space-x-2 text-sky-700">
               <span>{{ sy }}</span>
@@ -500,7 +534,7 @@
         </div>
 
         <div class="text-right pt-3 border-t">
-          <button @click="showTagModal = false" class="bg-slate-700 text-white px-4 py-2 rounded text-sm font-medium hover:bg-slate-800">完成關閉</button>
+          <button @click="showTagModal = false" class="bg-slate-700 text-white px-5 py-2 rounded text-sm font-medium hover:bg-slate-800">完成關閉</button>
         </div>
       </div>
     </div>
@@ -527,12 +561,13 @@
         const currentTab = ref('official_doc');
         const showTagModal = ref(false);
 
+        // 獨立分開的標籤選項
         const tagOptions = ref({
           schoolYears: ['114學年度', '115學年度', '116學年度'],
           departments: ['教務處', '學務處', '總務處', '輔導室'],
-          assignees: ['王老師', '李老師', '陳老師', '洪志林主任'], // 已在此處加入洪志林主任
-          teachers: ['王老師', '李老師', '陳老師', '林老師', '洪志林主任'],
-          dutyMembers: [
+          assignees: ['王老師', '李老師', '陳老師', '洪志林主任'], // 行政承辦人員
+          teachers: ['王老師', '李老師', '陳老師', '林老師', '洪志林主任'], // 學年出題老師
+          dutyMembers: [ // 學年工作輪流成員
             '五年一班老師', '五年二班老師', '五年三班老師', '五年四班老師', '五年五班老師',
             '六年一班老師', '六年二班老師', '六年三班老師', '六年四班老師', '六年五班老師'
           ]
@@ -576,13 +611,19 @@
           graduation_ceremony: [{ date: '', title: '畢業典禮流程協調', resolution: '', driveUrl: '' }]
         });
 
+        // 修正時區誤差，直接精準抓取年月日字串避免差一天
         const formatDate = (dateStr) => {
           if (!dateStr) return '';
-          if (typeof dateStr === 'string' && dateStr.includes('T')) return dateStr.substring(0, 10);
+          if (typeof dateStr === 'string') {
+            return dateStr.substring(0, 10);
+          }
           try {
             const d = new Date(dateStr);
             if (!isNaN(d.getTime())) {
-              return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              const year = d.getFullYear();
+              const month = String(d.getMonth() + 1).padStart(2, '0');
+              const day = String(d.getDate()).padStart(2, '0');
+              return `${year}-${month}-${day}`;
             }
           } catch (e) {}
           return dateStr;
@@ -687,10 +728,24 @@
           alert(`✅ [${typeName}] 紀錄已成功儲存！`);
         };
 
+        // 獨立標籤管理輸入綁定
         const newSchoolYearInput = ref('');
         const newAssigneeInput = ref('');
-        const addTag = (cat, val) => { if (val && !tagOptions.value[cat].includes(val.trim())) tagOptions.value[cat].push(val.trim()); };
-        const removeTag = (cat, idx) => tagOptions.value[cat].splice(idx, 1);
+        const newTeacherInput = ref('');
+        const newDutyMemberInput = ref('');
+
+        const addTag = (cat, val) => { 
+          if (val && val.trim() && !tagOptions.value[cat].includes(val.trim())) {
+            tagOptions.value[cat].push(val.trim()); 
+          }
+        };
+        const removeTag = (cat, idx) => {
+          if (tagOptions.value[cat].length <= 1) {
+            alert('至少必須保留一個標籤選項！');
+            return;
+          }
+          tagOptions.value[cat].splice(idx, 1);
+        };
 
         return {
           tabs, currentTab, showTagModal, tagOptions, selectedSchoolYear, globalSettings,
@@ -702,7 +757,7 @@
           startEditMeeting, cancelEditMeeting, deleteMeeting, submitMeeting,
           submitExamMatrix, addDutyItem, removeDutyItem, addPeriod, removePeriod, submitDutyRoster,
           addGraduationMeeting, removeGraduationMeeting, submitGraduationData,
-          newSchoolYearInput, newAssigneeInput, addTag, removeTag
+          newSchoolYearInput, newAssigneeInput, newTeacherInput, newDutyMemberInput, addTag, removeTag
         };
       }
     }).mount('#app');
