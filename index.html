@@ -266,7 +266,7 @@
           </div>
         </section>
 
-        <!-- 三、學年出題記錄 (升級為獨立表單新增與歷史表格清單) -->
+        <!-- 三、學年出題記錄 -->
         <section v-else-if="currentTab === 'exam_record'" class="space-y-6">
           <div class="bg-white rounded-xl shadow-sm p-6 border">
             <div class="flex justify-between items-center mb-4 border-b pb-2">
@@ -295,7 +295,6 @@
                 </div>
               </div>
 
-              <!-- 科目與出題設定區 -->
               <div class="space-y-3 pt-2">
                 <label class="block text-sm font-bold text-slate-700">各科出題分工與範圍設定：</label>
                 <div class="overflow-x-auto">
@@ -356,7 +355,7 @@
             </form>
           </div>
 
-          <!-- 已存檔出題記錄列表 (最新在最上方) -->
+          <!-- 已存檔出題記錄列表 -->
           <div class="bg-white rounded-xl shadow-sm p-6 border space-y-4">
             <div class="flex justify-between items-center border-b pb-2">
               <h2 class="text-lg font-bold text-slate-700">📂 歷年學年出題記錄總覽列表</h2>
@@ -371,7 +370,6 @@
                   <div class="flex items-center space-x-3">
                     <span class="bg-sky-600 text-white px-3 py-1 rounded-lg text-sm font-bold">{{ record.data[1] }}</span>
                     <span class="bg-slate-200 text-slate-700 px-2.5 py-0.5 rounded text-xs font-bold">{{ record.data[4] }}</span>
-                    <span class="text-xs text-slate-400">建立時間: {{ formatDate(record.data[0]) }}</span>
                   </div>
                   <div class="space-x-1">
                     <button @click="startEditExam(record)" class="bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 rounded text-xs font-medium">編輯</button>
@@ -379,7 +377,6 @@
                   </div>
                 </div>
 
-                <!-- 該筆紀錄的表格預覽 -->
                 <div class="overflow-x-auto">
                   <table class="w-full border-collapse border border-slate-200 text-xs bg-white">
                     <thead>
@@ -542,7 +539,7 @@
       </div>
     </main>
 
-    <!-- 標籤管理 Modal (獨立分類) -->
+    <!-- 標籤管理 Modal (修改後自動同步至雲端) -->
     <div v-if="showTagModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div class="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl space-y-6 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center border-b pb-3">
@@ -550,7 +547,7 @@
           <button @click="showTagModal = false" class="text-gray-400 hover:text-gray-600 font-bold">✕</button>
         </div>
 
-        <!-- 1. 行政承辦人員 (公文/會議) -->
+        <!-- 1. 行政承辦人員 -->
         <div class="space-y-2 border-b pb-4">
           <label class="block text-sm font-bold text-slate-700">1. 行政承辦人員標籤 (公文與會議用)</label>
           <div class="flex flex-wrap gap-2 max-h-24 overflow-y-auto p-2 border rounded bg-slate-50">
@@ -566,7 +563,7 @@
           </div>
         </div>
 
-        <!-- 2. 學年出題老師 (出題記錄) -->
+        <!-- 2. 學年出題老師 -->
         <div class="space-y-2 border-b pb-4">
           <label class="block text-sm font-bold text-slate-700">2. 學年出題老師標籤 (出題記錄用)</label>
           <div class="flex flex-wrap gap-2 max-h-24 overflow-y-auto p-2 border rounded bg-slate-50">
@@ -582,7 +579,7 @@
           </div>
         </div>
 
-        <!-- 3. 學年工作輪流成員 (工作輪流紀錄) -->
+        <!-- 3. 學年工作輪流成員 -->
         <div class="space-y-2 border-b pb-4">
           <label class="block text-sm font-bold text-slate-700">3. 學年工作輪流成員標籤 (輪流紀錄用)</label>
           <div class="flex flex-wrap gap-2 max-h-28 overflow-y-auto p-2 border rounded bg-slate-50">
@@ -615,7 +612,7 @@
         </div>
 
         <div class="text-right pt-3 border-t">
-          <button @click="showTagModal = false" class="bg-slate-700 text-white px-5 py-2 rounded text-sm font-medium hover:bg-slate-800">完成關閉</button>
+          <button @click="saveTagsToCloud" class="bg-sky-600 text-white px-5 py-2 rounded text-sm font-medium hover:bg-sky-700">儲存並關閉標籤</button>
         </div>
       </div>
     </div>
@@ -656,7 +653,6 @@
         const selectedSchoolYear = ref('114學年度');
         const globalSettings = ref({ department: '教務處', assignee: '王老師' });
 
-        // 各單元資料變數
         const docForm = ref({ date: '', docNo: '', subject: '', description: '', driveUrl: '' });
         const isEditingDoc = ref(false);
         const editingDocIndex = ref(null);
@@ -667,7 +663,6 @@
         const editingMeetingIndex = ref(null);
         const gradeMeetingsList = ref([]);
 
-        // 學年出題記錄表單與列表
         const isEditingExam = ref(false);
         const editingExamIndex = ref(null);
         const examRecordsList = ref([]);
@@ -720,29 +715,40 @@
 
         const parseExamPayload = (payloadStr) => {
           try {
-            if (typeof payloadStr === 'string') {
-              return JSON.parse(payloadStr);
-            }
+            if (typeof payloadStr === 'string') return JSON.parse(payloadStr);
             return payloadStr || [];
-          } catch (e) {
-            return [];
-          }
+          } catch (e) { return []; }
         };
 
+        // 從雲端讀取資料（含標籤設定）
         const fetchCloudData = async () => {
           try {
             const response = await fetch(`${gasApiUrl}?action=getData`);
             const result = await response.json();
             if (result.status === "success" && result.data) {
+              // 載入公文
               if (result.data["重要公文"]) {
                 officialDocsList.value = result.data["重要公文"].slice(1).map((row, idx) => ({ rowIndex: idx + 2, data: row })).reverse();
               }
+              // 載入會議
               if (result.data["學年會議"]) {
                 gradeMeetingsList.value = result.data["學年會議"].slice(1).map((row, idx) => ({ rowIndex: idx + 2, data: row })).reverse();
               }
+              // 載入出題記錄
               if (result.data["學年出題記錄"]) {
-                // 最新儲存的排在最上方 (.reverse())
                 examRecordsList.value = result.data["學年出題記錄"].slice(1).map((row, idx) => ({ rowIndex: idx + 2, data: row })).reverse();
+              }
+              // 載入獨立標籤設定
+              if (result.data["系統設定"]) {
+                const sysRows = result.data["系統設定"];
+                for (let i = 1; i < sysRows.length; i++) {
+                  if (sysRows[i][0] === "tagOptions") {
+                    try {
+                      const savedTags = JSON.parse(sysRows[i][1]);
+                      if (savedTags) tagOptions.value = savedTags;
+                    } catch(err) {}
+                  }
+                }
               }
             }
           } catch (error) {
@@ -751,6 +757,27 @@
         };
 
         fetchCloudData();
+
+        // 儲存標籤至雲端
+        const saveTagsToCloud = async () => {
+          const finalData = {
+            formType: "儲存標籤設定",
+            tagOptions: tagOptions.value
+          };
+          try {
+            alert("正在將標籤設定儲存至雲端...");
+            await fetch(gasApiUrl, {
+              method: "POST",
+              redirect: "follow",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify(finalData)
+            });
+            alert("✅ 標籤設定已成功永久儲存！");
+            showTagModal.value = false;
+          } catch (error) {
+            alert("❌ 標籤儲存失敗");
+          }
+        };
 
         // ── 公文動作 ──
         const startEditDoc = (item) => {
@@ -796,7 +823,7 @@
           alert("✅ 儲存成功！"); cancelEditMeeting(); fetchCloudData();
         };
 
-        // ── 學年出題記錄動作 ──
+        // ── 出題記錄動作 ──
         const startEditExam = (item) => {
           isEditingExam.value = true;
           editingExamIndex.value = item.rowIndex;
@@ -879,7 +906,7 @@
           meetingForm, isEditingMeeting, gradeMeetingsList,
           examForm, isEditingExam, examRecordsList, parseExamPayload,
           dutyItems, newDutyItemInput, graduationMeetings,
-          formatDate, fetchCloudData,
+          formatDate, fetchCloudData, saveTagsToCloud,
           startEditDoc, cancelEditDoc, deleteDoc, submitOfficialDoc,
           startEditMeeting, cancelEditMeeting, deleteMeeting, submitMeeting,
           startEditExam, cancelEditExam, deleteExam, submitExamRecord,
