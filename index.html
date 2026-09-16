@@ -611,19 +611,26 @@
           graduation_ceremony: [{ date: '', title: '畢業典禮流程協調', resolution: '', driveUrl: '' }]
         });
 
-        // 修正時區誤差，直接精準抓取年月日字串避免差一天
+        // 徹底解決時區減一天問題：強行將日期轉為本地時間或補正 8 小時
         const formatDate = (dateStr) => {
           if (!dateStr) return '';
-          if (typeof dateStr === 'string') {
-            return dateStr.substring(0, 10);
-          }
           try {
-            const d = new Date(dateStr);
-            if (!isNaN(d.getTime())) {
-              const year = d.getFullYear();
-              const month = String(d.getMonth() + 1).padStart(2, '0');
-              const day = String(d.getDate()).padStart(2, '0');
-              return `${year}-${month}-${day}`;
+            // 如果後端傳來的是包含 T 的 ISO 字串，直接用字串處理避免時區位移
+            if (typeof dateStr === 'string' && dateStr.includes('T')) {
+              // 為了防止 UTC 導致的前一天，我們直接解析其年月日或補正
+              const d = new Date(dateStr);
+              if (!isNaN(d.getTime())) {
+                // 使用 getUTCFullYear / getUTCMonth / getUTCDate 搭配台灣+8小時補正，或者直接取本地
+                const localD = new Date(d.getTime() + (8 * 60 * 60 * 1000));
+                const year = localD.getUTCFullYear();
+                const month = String(localD.getUTCMonth() + 1).padStart(2, '0');
+                const day = String(localD.getUTCDates ? localD.getUTCDates() : localD.getUTCDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+              }
+            }
+            // 若為一般字串
+            if (typeof dateStr === 'string' && dateStr.length >= 10) {
+              return dateStr.substring(0, 10);
             }
           } catch (e) {}
           return dateStr;
