@@ -356,8 +356,8 @@
                   <tr class="bg-slate-100 text-slate-700 text-center">
                     <th class="border border-slate-200 p-2.5">存檔時間</th>
                     <th class="border border-slate-200 p-2.5">學年度</th>
-                    <th class="border border-slate-200 p-2.5">承辦單位</th>
                     <th class="border border-slate-200 p-2.5">學期</th>
+                    <th class="border border-slate-200 p-2.5">承辦單位</th>
                     <th class="border border-slate-200 p-2.5">承辦人員</th>
                     <th class="border border-slate-200 p-2.5 w-36">操作</th>
                   </tr>
@@ -366,8 +366,8 @@
                   <tr v-for="(item, idx) in examRecordsList" :key="idx" class="hover:bg-slate-50 text-center">
                     <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.timestamp }}</td>
                     <td class="border border-slate-200 p-2.5 font-bold text-sky-700">{{ item.schoolYear }}</td>
-                    <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.department }}</td>
                     <td class="border border-slate-200 p-2.5">{{ item.semester }}</td>
+                    <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.department }}</td>
                     <td class="border border-slate-200 p-2.5 font-medium text-slate-800">{{ item.assignee }}</td>
                     <td class="border border-slate-200 p-2.5 space-x-1">
                       <button @click="loadExamRecord(item)" class="bg-sky-500 hover:bg-sky-600 text-white px-2 py-1 rounded text-xs font-medium">載入編輯</button>
@@ -460,8 +460,8 @@
                   <tr class="bg-slate-100 text-slate-700 text-center">
                     <th class="border border-slate-200 p-2.5">存檔時間</th>
                     <th class="border border-slate-200 p-2.5">學年度</th>
-                    <th class="border border-slate-200 p-2.5">承辦單位</th>
                     <th class="border border-slate-200 p-2.5">學期</th>
+                    <th class="border border-slate-200 p-2.5">承辦單位</th>
                     <th class="border border-slate-200 p-2.5">承辦人員</th>
                     <th class="border border-slate-200 p-2.5 w-36">操作</th>
                   </tr>
@@ -470,8 +470,8 @@
                   <tr v-for="(item, idx) in dutyRecordsList" :key="idx" class="hover:bg-slate-50 text-center">
                     <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.timestamp }}</td>
                     <td class="border border-slate-200 p-2.5 font-bold text-sky-700">{{ item.schoolYear }}</td>
-                    <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.department }}</td>
                     <td class="border border-slate-200 p-2.5">{{ item.semester }}</td>
+                    <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.department }}</td>
                     <td class="border border-slate-200 p-2.5 font-medium text-slate-800">{{ item.assignee }}</td>
                     <td class="border border-slate-200 p-2.5 space-x-1">
                       <button @click="loadDutyRecord(item)" class="bg-sky-500 hover:bg-sky-600 text-white px-2 py-1 rounded text-xs font-medium">載入編輯</button>
@@ -505,7 +505,7 @@
                 </div>
               </div>
               <button @click="addGraduationMeeting(currentTab)" class="bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
-                ＋ 新議紀錄
+                ＋ 新增會議紀錄
               </button>
             </div>
 
@@ -556,8 +556,8 @@
                   <tr class="bg-slate-100 text-slate-700 text-center">
                     <th class="border border-slate-200 p-2.5">存檔時間</th>
                     <th class="border border-slate-200 p-2.5">學年度</th>
-                    <th class="border border-slate-200 p-2.5">承辦單位</th>
                     <th class="border border-slate-200 p-2.5">學期</th>
+                    <th class="border border-slate-200 p-2.5">承辦單位</th>
                     <th class="border border-slate-200 p-2.5">承辦人員</th>
                     <th class="border border-slate-200 p-2.5 w-36">操作</th>
                   </tr>
@@ -566,8 +566,8 @@
                   <tr v-for="(item, idx) in getGraduationRecordsList(currentTab)" :key="idx" class="hover:bg-slate-50 text-center">
                     <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.timestamp }}</td>
                     <td class="border border-slate-200 p-2.5 font-bold text-sky-700">{{ item.schoolYear }}</td>
-                    <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.department }}</td>
                     <td class="border border-slate-200 p-2.5">{{ item.semester }}</td>
+                    <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.department }}</td>
                     <td class="border border-slate-200 p-2.5 font-medium text-slate-800">{{ item.assignee }}</td>
                     <td class="border border-slate-200 p-2.5 space-x-1">
                       <button @click="loadGraduationRecord(currentTab, item)" class="bg-sky-500 hover:bg-sky-600 text-white px-2 py-1 rounded text-xs font-medium">載入編輯</button>
@@ -755,7 +755,7 @@
           return dateStr;
         };
 
-        // 修正對應：row[3] = 承辦單位(C欄), row[4] = 承辦人員(D欄), row[2] = 學期(E欄)
+        // 準確對應：row[2] = 學期(上/下學期), row[3] = 承辦單位(教務處), row[4] = 承辦人員(王老師)
         const fetchCloudData = async () => {
           try {
             const response = await fetch(`${gasApiUrl}?action=getData`);
@@ -783,9 +783,9 @@
                   rowIndex: idx + 2,
                   timestamp: formatDate(row[0]),
                   schoolYear: row[1],
-                  semester: row[2],      // E 欄 (學期)
-                  department: row[3],   // C 欄 (承辦單位)
-                  assignee: row[4],     // D 欄 (承辦人員)
+                  semester: row[2],     // 學期 (上/下學期)
+                  department: row[3],   // 承辦單位 (教務處)
+                  assignee: row[4],     // 承辦人員 (王老師等)
                   payload: JSON.parse(row[5] || '[]')
                 })).reverse();
               }
@@ -944,7 +944,7 @@
         };
 
         const addGraduationMeeting = (type) => graduationMeetings.value[type].push({ date: '', title: '', resolution: '', driveUrl: '' });
-        const removeGraduationMeeting = (type, i) => graduationMeetings.value[type].splice(type, i);
+        const removeGraduationMeeting = (type, i) => graduationMeetings.value[type].splice(i, 1);
 
         const submitGraduationData = async (type) => {
           const typeName = tabs.value.find(t => t.id === type).name;
