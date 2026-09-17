@@ -285,6 +285,7 @@
               </div>
             </div>
 
+            <!-- 極簡出題記錄表單 -->
             <div class="overflow-x-auto">
               <table class="w-full border-collapse border border-slate-200 text-sm">
                 <thead>
@@ -345,6 +346,7 @@
                     <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.timestamp }}</td>
                     <td class="border border-slate-200 p-2.5 font-bold text-sky-700">{{ item.schoolYear }}</td>
                     <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.department }}</td>
+                    <!-- 正確對應學期與人員欄位 -->
                     <td class="border border-slate-200 p-2.5">{{ item.semester }}</td>
                     <td class="border border-slate-200 p-2.5 font-medium text-slate-800">{{ item.assignee }}</td>
                     <td class="border border-slate-200 p-2.5 space-x-1">
@@ -687,6 +689,7 @@
         const editingMeetingIndex = ref(null);
         const gradeMeetingsList = ref([]);
 
+        // 極簡化出題陣列
         const examMatrix = ref([
           { semester: '上學期', subject: '國語', midtermTeacher: '王老師', finalTeacher: '李老師' },
           { semester: '上學期', subject: '數學', midtermTeacher: '陳老師', finalTeacher: '林老師' },
