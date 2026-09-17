@@ -580,7 +580,7 @@
       </div>
     </main>
 
-    <!-- 標籤管理 Modal (自訂標籤儲存至雲端) -->
+    <!-- 標籤管理 Modal -->
     <div v-if="showTagModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div class="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl space-y-6 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center border-b pb-3">
@@ -749,17 +749,16 @@
           return dateStr;
         };
 
-        // 從雲端讀取所有資料、歷史存檔與標籤設定
+        // 從雲端讀取資料與對應的欄位順序修正 (row[2]=學期, row[4]=承辦人員)
         const fetchCloudData = async () => {
           try {
             const response = await fetch(`${gasApiUrl}?action=getData`);
             const result = await response.json();
             if (result.status === "success" && result.data) {
-              // 1. 載入自訂標籤設定
               if (result.data["系統標籤設定"]) {
                 const tagRows = result.data["系統標籤設定"];
                 if (tagRows.length > 1) {
-                  const lastRow = tagRows[tagRows.length - 1]; // 取最新一次儲存的標籤
+                  const lastRow = tagRows[tagRows.length - 1];
                   if (lastRow[1]) {
                     const savedTags = JSON.parse(lastRow[1]);
                     tagOptions.value = { ...tagOptions.value, ...savedTags };
@@ -778,9 +777,9 @@
                   rowIndex: idx + 2,
                   timestamp: formatDate(row[0]),
                   schoolYear: row[1],
-                  semester: row[2],
+                  semester: row[2], // 修正：第 3 欄為學期
                   department: row[3],
-                  assignee: row[4],
+                  assignee: row[4], // 修正：第 5 欄為承辦人員
                   payload: JSON.parse(row[5] || '[]')
                 })).reverse();
               }
@@ -789,9 +788,9 @@
                   rowIndex: idx + 2,
                   timestamp: formatDate(row[0]),
                   schoolYear: row[1],
-                  semester: row[2],
+                  semester: row[2], // 修正：第 3 欄為學期
                   department: row[3],
-                  assignee: row[4],
+                  assignee: row[4], // 修正：第 5 欄為承辦人員
                   payload: JSON.parse(row[5] || '[]')
                 })).reverse();
               }
@@ -802,9 +801,9 @@
                     rowIndex: idx + 2,
                     timestamp: formatDate(row[0]),
                     schoolYear: row[1],
-                    semester: row[2],
+                    semester: row[2], // 修正：第 3 欄為學期
                     department: row[3],
-                    assignee: row[4],
+                    assignee: row[4], // 修正：第 5 欄為承辦人員
                     payload: JSON.parse(row[5] || '[]')
                   })).reverse();
                 }
@@ -817,7 +816,6 @@
 
         fetchCloudData();
 
-        // 儲存標籤設定至雲端
         const saveTagOptionsToCloud = async () => {
           try {
             alert("正在將標籤設定同步至雲端...");
