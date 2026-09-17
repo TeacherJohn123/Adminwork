@@ -266,7 +266,7 @@
           </div>
         </section>
 
-        <!-- 三、學年出題記錄 (已簡化：學年度、學期、期中、期末、國語、數學、出題老師) -->
+        <!-- 三、學年出題記錄 (極簡化：學期、科目、期中期末老師) -->
         <section v-else-if="currentTab === 'exam_record'" class="space-y-6">
           <div class="bg-white rounded-xl shadow-sm p-6 border space-y-4">
             <div class="flex justify-between items-center border-b pb-3">
@@ -325,7 +325,7 @@
             </div>
           </div>
 
-          <!-- 歷史存檔紀錄列表 -->
+          <!-- 歷史存檔紀錄列表 (出題紀錄) -->
           <div class="bg-white rounded-xl shadow-sm p-6 border space-y-4">
             <h2 class="text-lg font-bold text-slate-700 border-b pb-2">📂 過往已儲存的出題紀錄清單</h2>
             <div class="overflow-x-auto">
@@ -342,6 +342,7 @@
                   <tr v-for="(item, idx) in examRecordsList" :key="idx" class="hover:bg-slate-50 text-center">
                     <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.timestamp }}</td>
                     <td class="border border-slate-200 p-2.5 font-bold text-sky-700">{{ item.schoolYear }}</td>
+                    <!-- 正確對應學期欄位 -->
                     <td class="border border-slate-200 p-2.5">{{ item.semester }}</td>
                     <td class="border border-slate-200 p-2.5 space-x-1">
                       <button @click="loadExamRecord(item)" class="bg-sky-500 hover:bg-sky-600 text-white px-2.5 py-1 rounded text-xs font-medium">載入編輯</button>
@@ -425,7 +426,7 @@
             </div>
           </div>
 
-          <!-- 歷史存檔紀錄列表 -->
+          <!-- 歷史存檔紀錄列表 (工作輪流紀錄) -->
           <div class="bg-white rounded-xl shadow-sm p-6 border space-y-4">
             <h2 class="text-lg font-bold text-slate-700 border-b pb-2">📂 過往已儲存的工作輪流分工紀錄清單</h2>
             <div class="overflow-x-auto">
@@ -435,6 +436,8 @@
                     <th class="border border-slate-200 p-2.5">存檔時間</th>
                     <th class="border border-slate-200 p-2.5">學年度</th>
                     <th class="border border-slate-200 p-2.5">學期</th>
+                    <th class="border border-slate-200 p-2.5">承辦單位</th>
+                    <th class="border border-slate-200 p-2.5">承辦人員</th>
                     <th class="border border-slate-200 p-2.5 w-36">操作</th>
                   </tr>
                 </thead>
@@ -442,14 +445,18 @@
                   <tr v-for="(item, idx) in dutyRecordsList" :key="idx" class="hover:bg-slate-50 text-center">
                     <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.timestamp }}</td>
                     <td class="border border-slate-200 p-2.5 font-bold text-sky-700">{{ item.schoolYear }}</td>
+                    <!-- 正確對應學期欄位 -->
                     <td class="border border-slate-200 p-2.5">{{ item.semester }}</td>
+                    <!-- 正確對應單位與人員欄位 -->
+                    <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.department }}</td>
+                    <td class="border border-slate-200 p-2.5 font-medium text-slate-800">{{ item.assignee }}</td>
                     <td class="border border-slate-200 p-2.5 space-x-1">
                       <button @click="loadDutyRecord(item)" class="bg-sky-500 hover:bg-sky-600 text-white px-2.5 py-1 rounded text-xs font-medium">載入編輯</button>
                       <button @click="deleteRecord('學年工作輪流紀錄', item.rowIndex)" class="bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 rounded text-xs font-medium">刪除</button>
                     </td>
                   </tr>
                   <tr v-if="dutyRecordsList.length === 0">
-                    <td colspan="4" class="border border-slate-200 p-6 text-center text-gray-400">目前尚無歷史工作輪流紀錄</td>
+                    <td colspan="6" class="border border-slate-200 p-6 text-center text-gray-400">目前尚無歷史工作輪流紀錄</td>
                   </tr>
                 </tbody>
               </table>
@@ -527,6 +534,8 @@
                     <th class="border border-slate-200 p-2.5">存檔時間</th>
                     <th class="border border-slate-200 p-2.5">學年度</th>
                     <th class="border border-slate-200 p-2.5">學期</th>
+                    <th class="border border-slate-200 p-2.5">承辦單位</th>
+                    <th class="border border-slate-200 p-2.5">承辦人員</th>
                     <th class="border border-slate-200 p-2.5 w-36">操作</th>
                   </tr>
                 </thead>
@@ -534,14 +543,17 @@
                   <tr v-for="(item, idx) in getGraduationRecordsList(currentTab)" :key="idx" class="hover:bg-slate-50 text-center">
                     <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.timestamp }}</td>
                     <td class="border border-slate-200 p-2.5 font-bold text-sky-700">{{ item.schoolYear }}</td>
+                    <!-- 正確對應學期欄位 -->
                     <td class="border border-slate-200 p-2.5">{{ item.semester }}</td>
+                    <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.department }}</td>
+                    <td class="border border-slate-200 p-2.5 font-medium text-slate-800">{{ item.assignee }}</td>
                     <td class="border border-slate-200 p-2.5 space-x-1">
                       <button @click="loadGraduationRecord(currentTab, item)" class="bg-sky-500 hover:bg-sky-600 text-white px-2.5 py-1 rounded text-xs font-medium">載入編輯</button>
                       <button @click="deleteRecord(tabs.find(t => t.id === currentTab).name, item.rowIndex)" class="bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 rounded text-xs font-medium">刪除</button>
                     </td>
                   </tr>
                   <tr v-if="getGraduationRecordsList(currentTab).length === 0">
-                    <td colspan="4" class="border border-slate-200 p-6 text-center text-gray-400">目前尚無歷史紀錄</td>
+                    <td colspan="6" class="border border-slate-200 p-6 text-center text-gray-400">目前尚無歷史紀錄</td>
                   </tr>
                 </tbody>
               </table>
@@ -721,6 +733,7 @@
           return dateStr;
         };
 
+        // 準確對應：row[2] = 承辦單位, row[3] = 承辦人員, row[4] = 學期
         const fetchCloudData = async () => {
           try {
             const response = await fetch(`${gasApiUrl}?action=getData`);
@@ -748,7 +761,9 @@
                   rowIndex: idx + 2,
                   timestamp: formatDate(row[0]),
                   schoolYear: row[1],
-                  semester: row[2],
+                  department: row[2],  // C 欄：承辦單位
+                  assignee: row[3],    // D 欄：承辦人員
+                  semester: row[4],    // E 欄：學期
                   payload: JSON.parse(row[5] || '[]')
                 })).reverse();
               }
@@ -757,7 +772,9 @@
                   rowIndex: idx + 2,
                   timestamp: formatDate(row[0]),
                   schoolYear: row[1],
-                  semester: row[2],
+                  department: row[2],  // C 欄：承辦單位
+                  assignee: row[3],    // D 欄：承辦人員
+                  semester: row[4],    // E 欄：學期
                   payload: JSON.parse(row[5] || '[]')
                 })).reverse();
               }
@@ -768,7 +785,9 @@
                     rowIndex: idx + 2,
                     timestamp: formatDate(row[0]),
                     schoolYear: row[1],
-                    semester: row[2],
+                    department: row[2],  // C 欄：承辦單位
+                    assignee: row[3],    // D 欄：承辦人員
+                    semester: row[4],    // E 欄：學期
                     payload: JSON.parse(row[5] || '[]')
                   })).reverse();
                 }
