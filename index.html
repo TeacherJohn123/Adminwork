@@ -266,7 +266,7 @@
           </div>
         </section>
 
-        <!-- 三、學年出題記錄 (完美修復表格呈現) -->
+        <!-- 三、學年出題記錄 -->
         <section v-else-if="currentTab === 'exam_record'" class="space-y-6">
           <div class="bg-white rounded-xl shadow-sm p-6 border">
             <div class="flex justify-between items-center mb-4 border-b pb-2">
@@ -360,7 +360,7 @@
             </form>
           </div>
 
-          <!-- 已存檔出題記錄列表 (表格呈現) -->
+          <!-- 已存檔出題記錄列表 -->
           <div class="bg-white rounded-xl shadow-sm p-6 border space-y-4">
             <div class="flex justify-between items-center border-b pb-2">
               <h2 class="text-lg font-bold text-slate-700">📂 歷年學年出題記錄總覽列表</h2>
@@ -398,11 +398,11 @@
                     </thead>
                     <tbody>
                       <tr v-for="(sub, sI) in parseExamPayload(record.data[5])" :key="sI" class="text-center">
-                        <td class="border border-slate-200 p-2 font-bold text-sky-700">{{ sub.name }}</td>
-                        <td class="border border-slate-200 p-2">{{ sub.midTeacher }}</td>
-                        <td class="border border-slate-200 p-2">{{ sub.midRange || '無' }}</td>
+                        <td class="border border-slate-200 p-2 font-bold text-sky-700">{{ sub.name || sub.subject }}</td>
+                        <td class="border border-slate-200 p-2">{{ sub.midTeacher || sub.midtermTeacher }}</td>
+                        <td class="border border-slate-200 p-2">{{ sub.midRange || sub.midtermRange || '無' }}</td>
                         <td class="border border-slate-200 p-2">
-                          <a v-if="sub.midUrl" :href="sub.midUrl" target="_blank" class="text-sky-600 underline font-bold">開啟連結</a>
+                          <a v-if="sub.midUrl || sub.midtermUrl" :href="sub.midUrl || sub.midtermUrl" target="_blank" class="text-sky-600 underline font-bold">開啟連結</a>
                           <span v-else class="text-gray-300">無</span>
                         </td>
                         <td class="border border-slate-200 p-2">{{ sub.finalTeacher }}</td>
