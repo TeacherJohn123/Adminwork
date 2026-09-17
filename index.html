@@ -328,7 +328,12 @@
 
           <!-- 歷史存檔紀錄列表 (出題紀錄) -->
           <div class="bg-white rounded-xl shadow-sm p-6 border space-y-4">
-            <h2 class="text-lg font-bold text-slate-700 border-b pb-2">📂 過往已儲存的出題紀錄清單</h2>
+            <div class="flex justify-between items-center border-b pb-2">
+              <h2 class="text-lg font-bold text-slate-700">📂 過往已儲存的出題紀錄清單</h2>
+              <button @click="fetchCloudData" class="text-xs bg-sky-100 hover:bg-sky-200 text-sky-700 px-3 py-1.5 rounded transition-colors font-bold cursor-pointer">
+                🔄 重新整理列表
+              </button>
+            </div>
             <div class="overflow-x-auto">
               <table class="w-full border-collapse border border-slate-200 text-sm">
                 <thead>
@@ -346,7 +351,6 @@
                     <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.timestamp }}</td>
                     <td class="border border-slate-200 p-2.5 font-bold text-sky-700">{{ item.schoolYear }}</td>
                     <td class="border border-slate-200 p-2.5 text-slate-600">{{ item.department }}</td>
-                    <!-- 正確對應學期與人員欄位 -->
                     <td class="border border-slate-200 p-2.5">{{ item.semester }}</td>
                     <td class="border border-slate-200 p-2.5 font-medium text-slate-800">{{ item.assignee }}</td>
                     <td class="border border-slate-200 p-2.5 space-x-1">
@@ -433,7 +437,12 @@
 
           <!-- 歷史存檔紀錄列表 (工作輪流紀錄) -->
           <div class="bg-white rounded-xl shadow-sm p-6 border space-y-4">
-            <h2 class="text-lg font-bold text-slate-700 border-b pb-2">📂 過往已儲存的工作輪流分工紀錄清單</h2>
+            <div class="flex justify-between items-center border-b pb-2">
+              <h2 class="text-lg font-bold text-slate-700">📂 過往已儲存的工作輪流分工紀錄清單</h2>
+              <button @click="fetchCloudData" class="text-xs bg-sky-100 hover:bg-sky-200 text-sky-700 px-3 py-1.5 rounded transition-colors font-bold cursor-pointer">
+                🔄 重新整理列表
+              </button>
+            </div>
             <div class="overflow-x-auto">
               <table class="w-full border-collapse border border-slate-200 text-sm">
                 <thead>
@@ -529,7 +538,12 @@
 
           <!-- 歷史存檔紀錄列表 -->
           <div class="bg-white rounded-xl shadow-sm p-6 border space-y-4">
-            <h2 class="text-lg font-bold text-slate-700 border-b pb-2">📂 過往已儲存的 {{ tabs.find(t => t.id === currentTab).name }} 紀錄清單</h2>
+            <div class="flex justify-between items-center border-b pb-2">
+              <h2 class="text-lg font-bold text-slate-700">📂 過往已儲存的 {{ tabs.find(t => t.id === currentTab).name }} 紀錄清單</h2>
+              <button @click="fetchCloudData" class="text-xs bg-sky-100 hover:bg-sky-200 text-sky-700 px-3 py-1.5 rounded transition-colors font-bold cursor-pointer">
+                🔄 重新整理列表
+              </button>
+            </div>
             <div class="overflow-x-auto">
               <table class="w-full border-collapse border border-slate-200 text-sm">
                 <thead>
@@ -689,7 +703,6 @@
         const editingMeetingIndex = ref(null);
         const gradeMeetingsList = ref([]);
 
-        // 極簡化出題陣列
         const examMatrix = ref([
           { semester: '上學期', subject: '國語', midtermTeacher: '王老師', finalTeacher: '李老師' },
           { semester: '上學期', subject: '數學', midtermTeacher: '陳老師', finalTeacher: '林老師' },
