@@ -1342,4 +1342,70 @@
 
       setup() {
 
-        //
+        // ============================================================
+
+        // Google Apps Script API
+
+        // ============================================================
+
+        const gasApiUrl = "https://script.google.com/macros/s/AKfycbysVhecRWKW_epCzggRFa_3QUxUDnGBawEnqgA22oc85AMG5LYjITLapYNO8w2gpxs/exec";
+
+
+
+        const tabs = ref([
+
+          { id: 'official_doc', name: '一、重要公文' },
+
+          { id: 'grade_meeting', name: '二、學年會議' },
+
+          { id: 'exam_record', name: '三、學年出題記錄' },
+
+          { id: 'duty_roster', name: '四、學年工作輪流紀錄' },
+
+          { id: 'graduation_trip', name: '五、畢業旅行' },
+
+          { id: 'graduation_album', name: '六、畢業紀念冊' },
+
+          { id: 'graduation_ceremony', name: '七、畢業典禮' }
+
+        ]);
+
+
+
+        const currentTab = ref('official_doc');
+
+        const showTagModal = ref(false);
+
+        const isSaving = ref(false);
+
+
+
+        const tagOptions = ref({
+
+          schoolYears: ['114學年度', '115學年度', '116學年度'],
+
+          semesters: ['全學年', '上學期', '下學期'],
+
+          departments: ['教務處', '學務處', '總務處', '輔導室'],
+
+          assignees: ['王老師', '李老師', '陳老師', '洪志林主任'],
+
+          teachers: ['王老師', '李老師', '陳老師', '林老師', '洪志林主任'],
+
+          dutyMembers: [
+
+            '五年一班老師', '五年二班老師', '五年三班老師', '五年四班老師', '五年五班老師',
+
+            '六年一班老師', '六年二班老師', '六年三班老師', '六年四班老師', '六年五班老師'
+
+          ]
+
+        });
+
+
+
+        const selectedSchoolYear = ref('114學年度');
+
+        const selectedSemester = ref('全學年');
+
+        const globalSettings = ref({ department: '教務處', assignee: '王老師' });
