@@ -355,7 +355,7 @@
                     <tr v-for="(subRow, subIdx) in item.payload" :key="subIdx" class="hover:bg-slate-50 text-center">
                       <td v-if="subIdx === 0" :rowspan="item.payload.length" class="border border-slate-200 p-2.5 text-slate-500 bg-gray-50 align-middle">{{ item.timestamp }}</td>
                       <td v-if="subIdx === 0" :rowspan="item.payload.length" class="border border-slate-200 p-2.5 font-bold text-sky-700 bg-gray-50 align-middle">{{ item.schoolYear }}</td>
-                      <td class="border border-slate-200 p-2.5 font-semibold text-slate-700">{{ subRow.semester }}</td>
+                      <td class="border border-slate-200 p-2.5 font-semibold text-slate-700">{{ item.semester }}</td>
                       <td class="border border-slate-200 p-2.5 font-bold text-sky-600">{{ subRow.subject }}</td>
                       <td class="border border-slate-200 p-2.5 text-slate-700">{{ subRow.midtermTeacher || '未指定' }}</td>
                       <td class="border border-slate-200 p-2.5 text-slate-700">{{ subRow.finalTeacher || '未指定' }}</td>
@@ -888,7 +888,7 @@
               examRecordsList.value = data['學年出題記錄']
                 .slice(1)
                 .map((row, idx) => {
-                  const recordSemester = row[2] || '全學年';
+                  const recordSemester = row[4] || '全學年';
                   const parsedPayload = safeJsonParse(row[5], []);
                   const normalizedPayload = normalizeExamPayload(parsedPayload, recordSemester);
 
@@ -897,8 +897,8 @@
                     timestamp: formatDate(row[0]),
                     schoolYear: row[1] || '',
                     semester: recordSemester,
-                    department: row[3] || '',
-                    assignee: row[4] || '',
+                    department: row[2] || '',
+                    assignee: row[3] || '',
                     payload: normalizedPayload
                   };
                 })
@@ -938,9 +938,9 @@
                     rowIndex: idx + 2,
                     timestamp: formatDate(row[0]),
                     schoolYear: row[1] || '',
-                    semester: row[2] || '全學年',
-                    department: row[3] || '',
-                    assignee: row[4] || '',
+                    department: row[2] || '',
+                    assignee: row[3] || '',
+                    semester: row[4] || '全學年',
                     payload: safeJsonParse(row[5], [])
                   }))
                   .reverse();
