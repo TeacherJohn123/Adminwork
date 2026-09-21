@@ -800,19 +800,29 @@
          * 舊版：name / midTeacher
          * 新版：subject / midtermTeacher
          */
-        const normalizeExamPayload = (payload, recordSemester = '全學年') => {
+        // 學期只允許這三種值；避免舊版資料中的「王老師、教務處」等文字被誤當成學期。
+        const normalizeSemester = (value) => {
+          const allowed = ['上學期', '下學期', '全學年'];
+          return allowed.includes(String(value || '').trim()) ? String(value).trim() : '';
+        };
+
+        const normalizeExamPayload = (payload, recordSemester = '') => {
           if (!Array.isArray(payload)) return [];
+
+          const validRecordSemester = normalizeSemester(recordSemester);
 
           return payload.map(item => {
             const source = item || {};
             const normalized = { ...source };
+            const itemSemester = normalizeSemester(source.semester);
 
-            normalized.semester = source.semester || recordSemester || '全學年';
+            // 優先使用單筆合法學期；否則使用該筆歷史紀錄的 E 欄學期。
+            // 如果兩者都沒有，顯示「未指定」，絕不把人名/單位當成學期。
+            normalized.semester = itemSemester || validRecordSemester || '未指定';
             normalized.subject = source.subject || source.name || '';
             normalized.midtermTeacher = source.midtermTeacher || source.midTeacher || '';
             normalized.finalTeacher = source.finalTeacher || '';
 
-            // 統一後不再依賴舊欄位。
             delete normalized.name;
             delete normalized.midTeacher;
 
@@ -879,7 +889,7 @@
             // --------------------------------------------------------
             // 出題紀錄：這裡是本次修正的核心。
             // Sheet：
-            //   row[2] = 學期
+            //   row[4] = 學期
             //   row[5] = JSON 詳細資料
             // 舊 JSON：name / midTeacher
             // 新 JSON：subject / midtermTeacher
@@ -888,7 +898,7 @@
               examRecordsList.value = data['學年出題記錄']
                 .slice(1)
                 .map((row, idx) => {
-                  const recordSemester = row[4] || '全學年';
+                  const recordSemester = normalizeSemester(row[4]) || '未指定';
                   const parsedPayload = safeJsonParse(row[5], []);
                   const normalizedPayload = normalizeExamPayload(parsedPayload, recordSemester);
 
@@ -960,10 +970,15 @@
         const loadExamRecord = (item) => {
           editingExamRowIndex.value = item.rowIndex;
           selectedSchoolYear.value = item.schoolYear;
-          selectedSemester.value = item.semester;
-          examMatrix.value = normalizeExamPayload(item.payload, item.semester);
+          const validSemester = normalizeSemester(item.semester);
+          selectedSemester.value = validSemester || '全學年';
+          examMatrix.value = normalizeExamPayload(item.payload, validSemester);
           window.scrollTo({ top: 0, behavior: 'smooth' });
-          alert(`✅ 已載入 [${item.schoolYear} - ${item.semester}] 出題紀錄。儲存時會直接覆蓋原紀錄。`);
+          if (validSemester) {
+            alert(`✅ 已載入 [${item.schoolYear} - ${validSemester}] 出題紀錄。儲存時會直接覆蓋原紀錄。`);
+          } else {
+            alert(`⚠️ 這筆 [${item.schoolYear}] 舊紀錄沒有可辨識的學期，已先以「全學年」載入。儲存前請確認上方學期選單。`);
+          }
         };
 
         const cancelEditExam = () => {
