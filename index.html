@@ -271,8 +271,11 @@
           <div class="bg-white rounded-xl shadow-sm p-6 border space-y-4">
             <div class="flex justify-between items-center border-b pb-3">
               <div class="flex items-center space-x-3">
-                <h2 class="text-lg font-bold text-slate-700">📋 學年出題分工與記錄</h2>
-                <div class="flex items-center space-x-2 bg-sky-50 border border-sky-200 px-3 py-1 rounded-lg">
+                <h2 class="text-lg font-bold text-slate-700">
+                  📋 學年出題分工與記錄 
+                  <span v-if="editingExamRowIndex" class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded ml-2">✏️ 編輯模式中 (原行號: {{ editingExamRowIndex }})</span>
+                </h2>
+                <div class="flex items-center space-x-2 bg-sky-50 border border-sky-200 px-3 py-1.5 rounded-lg">
                   <label class="text-xs font-bold text-sky-700">檢視:</label>
                   <select v-model="selectedSchoolYear" class="text-sm font-bold text-sky-800 bg-transparent focus:outline-none cursor-pointer">
                     <option v-for="sy in tagOptions.schoolYears" :key="sy" :value="sy">{{ sy }}</option>
@@ -283,56 +286,35 @@
                   </select>
                 </div>
               </div>
+              <button v-if="editingExamRowIndex" @click="cancelEditExam" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded font-medium">
+                取消編輯
+              </button>
             </div>
 
             <div class="overflow-x-auto">
               <table class="w-full border-collapse border border-slate-200 text-sm">
                 <thead>
                   <tr class="bg-slate-100 text-slate-700 text-center">
-                    <th class="border border-slate-200 p-3 w-28">學期</th>
-                    <th class="border border-slate-200 p-3 w-28">科目</th>
-                    <th class="border border-slate-200 p-3 w-1/3">期中考 (出題老師 / 範圍 / 連結)</th>
-                    <th class="border border-slate-200 p-3 w-1/3">期末考 (出題老師 / 範圍 / 連結)</th>
+                    <th class="border border-slate-200 p-3 w-32">學期</th>
+                    <th class="border border-slate-200 p-3 w-32">科目</th>
+                    <th class="border border-slate-200 p-3 w-1/2">期中考 (出題老師)</th>
+                    <th class="border border-slate-200 p-3 w-1/2">期末考 (出題老師)</th>
                   </tr>
                 </thead>
                 <tbody>
                   <template v-for="(row, index) in examMatrix" :key="index">
-                    <tr v-if="selectedSemester === '全學年' || row.semester === selectedSemester" class="hover:bg-slate-50">
-                      <td class="border border-slate-200 p-3 text-center font-bold text-slate-600">{{ row.semester }}</td>
-                      <td class="border border-slate-200 p-3 text-center font-bold text-sky-600">{{ row.subject }}</td>
-                      
-                      <td class="border border-slate-200 p-3 space-y-2 bg-sky-50/20">
-                        <div class="flex items-center space-x-2">
-                          <span class="text-xs text-slate-500 w-12">出題:</span>
-                          <select v-model="row.midtermTeacher" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
-                            <option v-for="t in tagOptions.teachers" :key="t" :value="t">{{ t }}</option>
-                          </select>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                          <span class="text-xs text-slate-500 w-12">範圍:</span>
-                          <input type="text" v-model="row.midtermRange" placeholder="例如: 第1-4課" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
-                        </div>
-                        <div class="flex items-center space-x-2">
-                          <span class="text-xs text-slate-500 w-12">連結:</span>
-                          <input type="url" v-model="row.midtermUrl" placeholder="雲端試卷網址" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
-                        </div>
+                    <tr v-if="selectedSemester === '全學年' || row.semester === selectedSemester" class="hover:bg-slate-50 text-center">
+                      <td class="border border-slate-200 p-3 font-bold text-slate-600">{{ row.semester }}</td>
+                      <td class="border border-slate-200 p-3 font-bold text-sky-600">{{ row.subject }}</td>
+                      <td class="border border-slate-200 p-3 bg-sky-50/20">
+                        <select v-model="row.midtermTeacher" class="w-full border rounded px-3 py-1.5 text-sm bg-white text-center font-medium">
+                          <option v-for="t in tagOptions.teachers" :key="t" :value="t">{{ t }}</option>
+                        </select>
                       </td>
-
-                      <td class="border border-slate-200 p-3 space-y-2 bg-amber-50/20">
-                        <div class="flex items-center space-x-2">
-                          <span class="text-xs text-slate-500 w-12">出題:</span>
-                          <select v-model="row.finalTeacher" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
-                            <option v-for="t in tagOptions.teachers" :key="t" :value="t">{{ t }}</option>
-                          </select>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                          <span class="text-xs text-slate-500 w-12">範圍:</span>
-                          <input type="text" v-model="row.finalRange" placeholder="例如: 第5-8課" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
-                        </div>
-                        <div class="flex items-center space-x-2">
-                          <span class="text-xs text-slate-500 w-12">連結:</span>
-                          <input type="url" v-model="row.finalUrl" placeholder="雲端試卷網址" class="flex-1 border rounded px-2 py-1 text-xs bg-white">
-                        </div>
+                      <td class="border border-slate-200 p-3 bg-amber-50/20">
+                        <select v-model="row.finalTeacher" class="w-full border rounded px-3 py-1.5 text-sm bg-white text-center font-medium">
+                          <option v-for="t in tagOptions.teachers" :key="t" :value="t">{{ t }}</option>
+                        </select>
                       </td>
                     </tr>
                   </template>
@@ -341,15 +323,20 @@
             </div>
 
             <div class="text-right pt-2">
-              <button @click="submitExamMatrix" class="bg-sky-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
-                儲存 [{{ selectedSchoolYear }} - {{ selectedSemester }}] 全學年出題分工表
+              <button @click="submitExamMatrix" :class="['px-6 py-2 rounded-lg text-sm font-medium text-white transition-colors', editingExamRowIndex ? 'bg-amber-600 hover:bg-amber-700' : 'bg-sky-600 hover:bg-sky-700']">
+                {{ editingExamRowIndex ? '確認修改 [出題分工表]' : '儲存出題分工表' }}
               </button>
             </div>
           </div>
 
           <!-- 歷史存檔紀錄列表 -->
           <div class="bg-white rounded-xl shadow-sm p-6 border space-y-4">
-            <h2 class="text-lg font-bold text-slate-700 border-b pb-2">📂 過往已儲存的出題紀錄清單</h2>
+            <div class="flex justify-between items-center border-b pb-2">
+              <h2 class="text-lg font-bold text-slate-700">📂 過往已儲存的出題紀錄清單</h2>
+              <button @click="fetchCloudData" class="text-xs bg-sky-100 hover:bg-sky-200 text-sky-700 px-3 py-1.5 rounded transition-colors font-bold cursor-pointer">
+                🔄 重新整理列表
+              </button>
+            </div>
             <div class="overflow-x-auto">
               <table class="w-full border-collapse border border-slate-200 text-sm">
                 <thead>
@@ -368,8 +355,8 @@
                     <td class="border border-slate-200 p-2.5">{{ item.semester }}</td>
                     <td class="border border-slate-200 p-2.5">{{ item.assignee }}</td>
                     <td class="border border-slate-200 p-2.5 space-x-1">
-                      <button @click="loadExamRecord(item)" class="bg-sky-500 hover:bg-sky-600 text-white px-2 py-1 rounded text-xs font-medium">載入編輯</button>
-                      <button @click="deleteRecord('學年出題記錄', item.rowIndex)" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-medium">刪除</button>
+                      <button @click="loadExamRecord(item)" class="bg-sky-500 hover:bg-sky-600 text-white px-2.5 py-1 rounded text-xs font-medium">載入編輯</button>
+                      <button @click="deleteRecord('學年出題記錄', item.rowIndex)" class="bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 rounded text-xs font-medium">刪除</button>
                     </td>
                   </tr>
                   <tr v-if="examRecordsList.length === 0">
@@ -386,8 +373,11 @@
           <div class="bg-white rounded-xl shadow-sm p-6 border space-y-6">
             <div class="flex justify-between items-center border-b pb-3">
               <div class="flex items-center space-x-3">
-                <h2 class="text-lg font-bold text-slate-700">🔄 學年工作輪流與分工表</h2>
-                <div class="flex items-center space-x-2 bg-sky-50 border border-sky-200 px-3 py-1 rounded-lg">
+                <h2 class="text-lg font-bold text-slate-700">
+                  🔄 學年工作輪流與分工表
+                  <span v-if="editingDutyRowIndex" class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded ml-2">✏️ 編輯模式中 (原行號: {{ editingDutyRowIndex }})</span>
+                </h2>
+                <div class="flex items-center space-x-2 bg-sky-50 border border-sky-200 px-3 py-1.5 rounded-lg">
                   <label class="text-xs font-bold text-sky-700">檢視:</label>
                   <select v-model="selectedSchoolYear" class="text-sm font-bold text-sky-800 bg-transparent focus:outline-none cursor-pointer">
                     <option v-for="sy in tagOptions.schoolYears" :key="sy" :value="sy">{{ sy }}</option>
@@ -399,6 +389,9 @@
                 </div>
               </div>
               <div class="flex items-center space-x-2">
+                <button v-if="editingDutyRowIndex" @click="cancelEditDuty" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded font-medium">
+                  取消編輯
+                </button>
                 <input type="text" v-model="newDutyItemInput" placeholder="新增工作項目名稱..." class="border rounded px-3 py-1.5 text-sm w-48">
                 <button @click="addDutyItem" class="bg-sky-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-sky-700 transition-colors">
                   ＋ 新增工作項目
@@ -443,15 +436,20 @@
             </div>
 
             <div class="text-right pt-2">
-              <button @click="submitDutyRoster" class="bg-sky-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors">
-                儲存 [{{ selectedSchoolYear }} - {{ selectedSemester }}] 學年工作輪流與分工表
+              <button @click="submitDutyRoster" :class="['px-6 py-2 rounded-lg text-sm font-medium text-white transition-colors', editingDutyRowIndex ? 'bg-amber-600 hover:bg-amber-700' : 'bg-sky-600 hover:bg-sky-700']">
+                {{ editingDutyRowIndex ? '確認修改 [工作輪流表]' : '儲存工作輪流表' }}
               </button>
             </div>
           </div>
 
           <!-- 歷史存檔紀錄列表 -->
           <div class="bg-white rounded-xl shadow-sm p-6 border space-y-4">
-            <h2 class="text-lg font-bold text-slate-700 border-b pb-2">📂 過往已儲存的工作輪流分工紀錄清單</h2>
+            <div class="flex justify-between items-center border-b pb-2">
+              <h2 class="text-lg font-bold text-slate-700">📂 過往已儲存的工作輪流分工紀錄清單</h2>
+              <button @click="fetchCloudData" class="text-xs bg-sky-100 hover:bg-sky-200 text-sky-700 px-3 py-1.5 rounded transition-colors font-bold cursor-pointer">
+                🔄 重新整理列表
+              </button>
+            </div>
             <div class="overflow-x-auto">
               <table class="w-full border-collapse border border-slate-200 text-sm">
                 <thead>
@@ -545,7 +543,12 @@
 
           <!-- 歷史存檔紀錄列表 -->
           <div class="bg-white rounded-xl shadow-sm p-6 border space-y-4">
-            <h2 class="text-lg font-bold text-slate-700 border-b pb-2">📂 過往已儲存的 {{ tabs.find(t => t.id === currentTab).name }} 紀錄清單</h2>
+            <div class="flex justify-between items-center border-b pb-2">
+              <h2 class="text-lg font-bold text-slate-700">📂 過往已儲存的 {{ tabs.find(t => t.id === currentTab).name }} 紀錄清單</h2>
+              <button @click="fetchCloudData" class="text-xs bg-sky-100 hover:bg-sky-200 text-sky-700 px-3 py-1.5 rounded transition-colors font-bold cursor-pointer">
+                🔄 重新整理列表
+              </button>
+            </div>
             <div class="overflow-x-auto">
               <table class="w-full border-collapse border border-slate-200 text-sm">
                 <thead>
@@ -565,7 +568,7 @@
                     <td class="border border-slate-200 p-2.5">{{ item.assignee }}</td>
                     <td class="border border-slate-200 p-2.5 space-x-1">
                       <button @click="loadGraduationRecord(currentTab, item)" class="bg-sky-500 hover:bg-sky-600 text-white px-2 py-1 rounded text-xs font-medium">載入編輯</button>
-                      <button @click="deleteRecord(tabs.find(t => t.id === currentTab).name, item.rowIndex)" class="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-medium">刪除</button>
+                      <button @click="deleteRecord(tabs.find(t => t.id === currentTab).name, item.rowIndex)" class="bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 rounded text-xs font-medium">刪除</button>
                     </td>
                   </tr>
                   <tr v-if="getGraduationRecordsList(currentTab).length === 0">
@@ -580,7 +583,7 @@
       </div>
     </main>
 
-    <!-- 標籤管理 Modal (獨立分類) -->
+    <!-- 標籤管理 Modal -->
     <div v-if="showTagModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div class="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl space-y-6 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center border-b pb-3">
@@ -703,12 +706,13 @@
         const gradeMeetingsList = ref([]);
 
         const examMatrix = ref([
-          { semester: '上學期', subject: '國語', midtermTeacher: '王老師', midtermRange: '', midtermUrl: '', finalTeacher: '李老師', finalRange: '', finalUrl: '' },
-          { semester: '上學期', subject: '數學', midtermTeacher: '陳老師', midtermRange: '', midtermUrl: '', finalTeacher: '林老師', finalRange: '', finalUrl: '' },
-          { semester: '下學期', subject: '國語', midtermTeacher: '王老師', midtermRange: '', midtermUrl: '', finalTeacher: '李老師', finalRange: '', finalUrl: '' },
-          { semester: '下學期', subject: '數學', midtermTeacher: '陳老師', midtermRange: '', midtermUrl: '', finalTeacher: '林老師', finalRange: '', finalUrl: '' }
+          { semester: '上學期', subject: '國語', midtermTeacher: '王老師', finalTeacher: '李老師' },
+          { semester: '上學期', subject: '數學', midtermTeacher: '陳老師', finalTeacher: '林老師' },
+          { semester: '下學期', subject: '國語', midtermTeacher: '王老師', finalTeacher: '李老師' },
+          { semester: '下學期', subject: '數學', midtermTeacher: '陳老師', finalTeacher: '林老師' }
         ]);
         const examRecordsList = ref([]);
+        const editingExamRowIndex = ref(null); // 追蹤出題紀錄編輯行號
 
         const dutyItems = ref([
           {
@@ -721,6 +725,7 @@
         ]);
         const newDutyItemInput = ref('');
         const dutyRecordsList = ref([]);
+        const editingDutyRowIndex = ref(null); // 追蹤工作輪流紀錄編輯行號
 
         const graduationMeetings = ref({
           graduation_trip: [{ date: '', title: '第一次畢旅籌備會議', resolution: '', driveUrl: '' }],
@@ -748,52 +753,97 @@
           return dateStr;
         };
 
-        // 從雲端讀取所有資料與歷史存檔
+        // 具備完整 JSON.parse 獨立錯誤處理與雲端標籤載入的資料同步函式
         const fetchCloudData = async () => {
           try {
             const response = await fetch(`${gasApiUrl}?action=getData`);
             const result = await response.json();
             if (result.status === "success" && result.data) {
+              if (result.data["系統標籤設定"]) {
+                const tagRows = result.data["系統標籤設定"];
+                if (tagRows.length > 1) {
+                  const lastRow = tagRows[tagRows.length - 1];
+                  if (lastRow[1]) {
+                    try {
+                      const savedTags = JSON.parse(lastRow[1]);
+                      tagOptions.value = { ...tagOptions.value, ...savedTags };
+                    } catch (e) {
+                      console.error("標籤 JSON 解析失敗", e);
+                    }
+                  }
+                }
+              }
+
               if (result.data["重要公文"]) {
                 officialDocsList.value = result.data["重要公文"].slice(1).map((row, idx) => ({ rowIndex: idx + 2, data: row })).reverse();
               }
               if (result.data["學年會議"]) {
                 gradeMeetingsList.value = result.data["學年會議"].slice(1).map((row, idx) => ({ rowIndex: idx + 2, data: row })).reverse();
               }
+
+              // 安全解析出題紀錄
               if (result.data["學年出題記錄"]) {
-                examRecordsList.value = result.data["學年出題記錄"].slice(1).map((row, idx) => ({
-                  rowIndex: idx + 2,
-                  timestamp: formatDate(row[0]),
-                  schoolYear: row[1],
-                  semester: row[2],
-                  department: row[3],
-                  assignee: row[4],
-                  payload: JSON.parse(row[5] || '[]')
-                })).reverse();
-              }
-              if (result.data["學年工作輪流紀錄"]) {
-                dutyRecordsList.value = result.data["學年工作輪流紀錄"].slice(1).map((row, idx) => ({
-                  rowIndex: idx + 2,
-                  timestamp: formatDate(row[0]),
-                  schoolYear: row[1],
-                  semester: row[2],
-                  department: row[3],
-                  assignee: row[4],
-                  payload: JSON.parse(row[5] || '[]')
-                })).reverse();
-              }
-              ['畢業旅行', '畢業紀念冊', '畢業典禮'].forEach(typeName => {
-                let tabKey = typeName === '畢業旅行' ? 'graduation_trip' : typeName === '畢業紀念冊' ? 'graduation_album' : 'graduation_ceremony';
-                if (result.data[typeName]) {
-                  graduationRecordsList.value[tabKey] = result.data[typeName].slice(1).map((row, idx) => ({
+                examRecordsList.value = result.data["學年出題記錄"].slice(1).map((row, idx) => {
+                  let parsedPayload = [];
+                  try {
+                    parsedPayload = JSON.parse(row[5] || '[]');
+                  } catch (err) {
+                    console.error("出題紀錄 JSON 解析異常 (Row " + (idx + 2) + ")", err);
+                  }
+                  return {
                     rowIndex: idx + 2,
                     timestamp: formatDate(row[0]),
                     schoolYear: row[1],
                     semester: row[2],
                     department: row[3],
                     assignee: row[4],
-                    payload: JSON.parse(row[5] || '[]')
-                  })).reverse();
+                    payload: parsedPayload
+                  };
+                }).reverse();
+              }
+
+              // 安全解析工作輪流紀錄
+              if (result.data["學年工作輪流紀錄"]) {
+                dutyRecordsList.value = result.data["學年工作輪流紀錄"].slice(1).map((row, idx) => {
+                  let parsedPayload = [];
+                  try {
+                    parsedPayload = JSON.parse(row[5] || '[]');
+                  } catch (err) {
+                    console.error("工作輪流紀錄 JSON 解析異常 (Row " + (idx + 2) + ")", err);
+                  }
+                  return {
+                    rowIndex: idx + 2,
+                    timestamp: formatDate(row[0]),
+                    schoolYear: row[1],
+                    semester: row[2],
+                    department: row[3],
+                    assignee: row[4],
+                    payload: parsedPayload
+                  };
+                }).reverse();
+              }
+
+              // 安全解析畢業相關會議紀錄
+              ['畢業旅行', '畢業紀念冊', '畢業典禮'].forEach(typeName => {
+                let tabKey = typeName === '畢業旅行' ? 'graduation_trip' : typeName === '畢業紀念冊' ? 'graduation_album' : 'graduation_ceremony';
+                if (result.data[typeName]) {
+                  graduationRecordsList.value[tabKey] = result.data[typeName].slice(1).map((row, idx) => {
+                    let parsedPayload = [];
+                    try {
+                      parsedPayload = JSON.parse(row[5] || '[]');
+                    } catch (err) {
+                      console.error(typeName + " JSON 解析異常", err);
+                    }
+                    return {
+                      rowIndex: idx + 2,
+                      timestamp: formatDate(row[0]),
+                      schoolYear: row[1],
+                      semester: row[2],
+                      department: row[3],
+                      assignee: row[4],
+                      payload: parsedPayload
+                    };
+                  }).reverse();
                 }
               });
             }
@@ -804,20 +854,34 @@
 
         fetchCloudData();
 
-        // 載入歷史出題紀錄
+        // 載入出題紀錄並啟動編輯覆蓋模式
         const loadExamRecord = (item) => {
+          editingExamRowIndex.value = item.rowIndex;
           selectedSchoolYear.value = item.schoolYear;
           selectedSemester.value = item.semester;
           examMatrix.value = item.payload;
-          alert(`✅ 已成功載入 [${item.schoolYear} - ${item.semester}] 的出題紀錄！`);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          alert(`✅ 已載入 [${item.schoolYear} - ${item.semester}] 出題紀錄進行編輯，儲存時將直接覆蓋原紀錄！`);
         };
 
-        // 載入歷史工作輪流紀錄
+        const cancelEditExam = () => {
+          editingExamRowIndex.value = null;
+          alert("已取消編輯模式。");
+        };
+
+        // 載入工作輪流紀錄並啟動編輯覆蓋模式
         const loadDutyRecord = (item) => {
+          editingDutyRowIndex.value = item.rowIndex;
           selectedSchoolYear.value = item.schoolYear;
           selectedSemester.value = item.semester;
           dutyItems.value = item.payload;
-          alert(`✅ 已成功載入 [${item.schoolYear} - ${item.semester}] 的工作輪流紀錄！`);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          alert(`✅ 已載入 [${item.schoolYear} - ${item.semester}] 工作輪流紀錄進行編輯，儲存時將直接覆蓋原紀錄！`);
+        };
+
+        const cancelEditDuty = () => {
+          editingDutyRowIndex.value = null;
+          alert("已取消編輯模式。");
         };
 
         const getGraduationRecordsList = (type) => graduationRecordsList.value[type] || [];
@@ -829,25 +893,28 @@
           alert(`✅ 已成功載入 [${item.schoolYear} - ${item.semester}] 的會議紀錄！`);
         };
 
-        // 通用刪除紀錄
+        // 具備嚴格 API 回傳結果檢查的通用刪除
         const deleteRecord = async (sheetName, rowIndex) => {
           if (!confirm("確定要刪除這筆歷史紀錄嗎？")) return;
           try {
-            alert("正在從雲端刪除...");
-            await fetch(gasApiUrl, {
+            const response = await fetch(gasApiUrl, {
               method: "POST",
               redirect: "follow",
               headers: { "Content-Type": "text/plain;charset=utf-8" },
               body: JSON.stringify({ formType: "刪除紀錄", targetSheetName: sheetName, rowIndex: rowIndex })
             });
-            alert("✅ 刪除成功！");
-            fetchCloudData();
+            const result = await response.json();
+            if (result.status === "success") {
+              alert("✅ 刪除成功！");
+              fetchCloudData();
+            } else {
+              alert("❌ 刪除失敗：" + (result.message || "未知錯誤"));
+            }
           } catch (error) {
-            alert("❌ 刪除失敗");
+            alert("❌ 網路或伺服器異常，刪除失敗。");
           }
         };
 
-        // 公文與會議相關方法...
         const startEditDoc = (item) => {
           isEditingDoc.value = true;
           editingDocIndex.value = item.rowIndex;
@@ -858,15 +925,19 @@
           window.scrollTo({ top: 0, behavior: 'smooth' });
         };
         const cancelEditDoc = () => { isEditingDoc.value = false; editingDocIndex.value = null; docForm.value = { date: '', docNo: '', subject: '', description: '', driveUrl: '' }; };
+        
         const deleteDoc = async (item) => {
           if (!confirm(`確定要刪除主旨為「${item.data[6]}」的公文紀錄嗎？`)) return;
-          await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ formType: "刪除公文", rowIndex: item.rowIndex }) });
-          alert("✅ 刪除成功！"); fetchCloudData();
+          const response = await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ formType: "刪除公文", rowIndex: item.rowIndex }) });
+          const res = await response.json();
+          if (res.status === "success") { alert("✅ 刪除成功！"); fetchCloudData(); } else { alert("❌ 刪除失敗"); }
         };
+
         const submitOfficialDoc = async () => {
           const finalData = { formType: isEditingDoc.value ? "修改公文" : "重要公文", rowIndex: editingDocIndex.value, schoolYear: selectedSchoolYear.value, ...globalSettings.value, ...docForm.value };
-          await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(finalData) });
-          alert("✅ 儲存成功！"); cancelEditDoc(); fetchCloudData();
+          const response = await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(finalData) });
+          const res = await response.json();
+          if (res.status === "success") { alert("✅ 儲存成功！"); cancelEditDoc(); fetchCloudData(); } else { alert("❌ 儲存失敗"); }
         };
 
         const startEditMeeting = (item) => {
@@ -879,22 +950,46 @@
           window.scrollTo({ top: 0, behavior: 'smooth' });
         };
         const cancelEditMeeting = () => { isEditingMeeting.value = false; editingMeetingIndex.value = null; meetingForm.value = { date: '', subject: '', description: '', reply: '', driveUrl: '', status: 'yellow' }; };
+        
         const deleteMeeting = async (item) => {
           if (!confirm(`確定要刪除主旨為「${item.data[6]}」的會議提案嗎？`)) return;
-          await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ formType: "刪除會議", rowIndex: item.rowIndex }) });
-          alert("✅ 刪除成功！"); fetchCloudData();
-        };
-        const submitMeeting = async () => {
-          const finalData = { formType: isEditingMeeting.value ? "修改會議" : "學年會議", rowIndex: editingMeetingIndex.value, schoolYear: selectedSchoolYear.value, ...globalSettings.value, ...meetingForm.value };
-          await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(finalData) });
-          alert("✅ 儲存成功！"); cancelEditMeeting(); fetchCloudData();
+          const response = await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ formType: "刪除會議", rowIndex: item.rowIndex }) });
+          const res = await response.json();
+          if (res.status === "success") { alert("✅ 刪除成功！"); fetchCloudData(); } else { alert("❌ 刪除失敗"); }
         };
 
+        const submitMeeting = async () => {
+          const finalData = { formType: isEditingMeeting.value ? "修改會議" : "學年會議", rowIndex: editingMeetingIndex.value, schoolYear: selectedSchoolYear.value, ...globalSettings.value, ...meetingForm.value };
+          const response = await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(finalData) });
+          const res = await response.json();
+          if (res.status === "success") { alert("✅ 儲存成功！"); cancelEditMeeting(); fetchCloudData(); } else { alert("❌ 儲存失敗"); }
+        };
+
+        // 儲存出題記錄（支援辨識為「修改紀錄」或「新增」）
         const submitExamMatrix = async () => {
-          const finalData = { formType: "學年出題記錄", schoolYear: selectedSchoolYear.value, semester: selectedSemester.value, ...globalSettings.value, payload: examMatrix.value };
-          await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(finalData) });
-          alert(`✅ [${selectedSchoolYear.value} - ${selectedSemester.value}] 全學年出題分工表已成功儲存！`);
-          fetchCloudData();
+          const isUpdating = !!editingExamRowIndex.value;
+          const finalData = {
+            formType: isUpdating ? "修改紀錄" : "學年出題記錄",
+            targetSheetName: "學年出題記錄",
+            rowIndex: editingExamRowIndex.value,
+            schoolYear: selectedSchoolYear.value,
+            semester: selectedSemester.value,
+            ...globalSettings.value,
+            payload: examMatrix.value
+          };
+          try {
+            const response = await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(finalData) });
+            const res = await response.json();
+            if (res.status === "success") {
+              alert(`✅ [${selectedSchoolYear.value} - ${selectedSemester.value}] 出題分工表已成功${isUpdating ? '更新覆蓋' : '儲存'}！`);
+              editingExamRowIndex.value = null;
+              fetchCloudData();
+            } else {
+              alert("❌ 儲存失敗：" + (res.message || ""));
+            }
+          } catch (e) {
+            alert("❌ 網路異常，儲存失敗。");
+          }
         };
 
         const addDutyItem = () => {
@@ -906,11 +1001,31 @@
         const addPeriod = (i) => dutyItems.value[i].periods.push({ timeSlot: '', assignee: tagOptions.value.dutyMembers[0] });
         const removePeriod = (i, pi) => dutyItems.value[i].periods.splice(pi, 1);
 
+        // 儲存工作輪流表（支援辨識為「修改紀錄」或「新增」）
         const submitDutyRoster = async () => {
-          const finalData = { formType: "學年工作輪流紀錄", schoolYear: selectedSchoolYear.value, semester: selectedSemester.value, ...globalSettings.value, payload: dutyItems.value };
-          await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(finalData) });
-          alert(`✅ [${selectedSchoolYear.value} - ${selectedSemester.value}] 學年工作輪流與分工表已成功儲存！`);
-          fetchCloudData();
+          const isUpdating = !!editingDutyRowIndex.value;
+          const finalData = {
+            formType: isUpdating ? "修改紀錄" : "學年工作輪流紀錄",
+            targetSheetName: "學年工作輪流紀錄",
+            rowIndex: editingDutyRowIndex.value,
+            schoolYear: selectedSchoolYear.value,
+            semester: selectedSemester.value,
+            ...globalSettings.value,
+            payload: dutyItems.value
+          };
+          try {
+            const response = await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(finalData) });
+            const res = await response.json();
+            if (res.status === "success") {
+              alert(`✅ [${selectedSchoolYear.value} - ${selectedSemester.value}] 工作輪流表已成功${isUpdating ? '更新覆蓋' : '儲存'}！`);
+              editingDutyRowIndex.value = null;
+              fetchCloudData();
+            } else {
+              alert("❌ 儲存失敗：" + (res.message || ""));
+            }
+          } catch (e) {
+            alert("❌ 網路異常，儲存失敗。");
+          }
         };
 
         const addGraduationMeeting = (type) => graduationMeetings.value[type].push({ date: '', title: '', resolution: '', driveUrl: '' });
@@ -919,9 +1034,9 @@
         const submitGraduationData = async (type) => {
           const typeName = tabs.value.find(t => t.id === type).name;
           const finalData = { formType: typeName, schoolYear: selectedSchoolYear.value, semester: selectedSemester.value, ...globalSettings.value, payload: graduationMeetings.value[type] };
-          await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(finalData) });
-          alert(`✅ [${selectedSchoolYear.value} - ${selectedSemester.value}] ${typeName} 紀錄已成功儲存！`);
-          fetchCloudData();
+          const response = await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(finalData) });
+          const res = await response.json();
+          if (res.status === "success") { alert(`✅ [${selectedSchoolYear.value} - ${selectedSemester.value}] ${typeName} 紀錄已成功儲存！`); fetchCloudData(); } else { alert("❌ 儲存失敗"); }
         };
 
         const newSchoolYearInput = ref('');
@@ -943,8 +1058,8 @@
           tabs, currentTab, showTagModal, tagOptions, selectedSchoolYear, selectedSemester, globalSettings,
           docForm, isEditingDoc, officialDocsList,
           meetingForm, isEditingMeeting, gradeMeetingsList,
-          examMatrix, examRecordsList, loadExamRecord,
-          dutyItems, newDutyItemInput, dutyRecordsList, loadDutyRecord,
+          examMatrix, examRecordsList, loadExamRecord, editingExamRowIndex, cancelEditExam,
+          dutyItems, newDutyItemInput, dutyRecordsList, loadDutyRecord, editingDutyRowIndex, cancelEditDuty,
           graduationMeetings, graduationRecordsList, getGraduationRecordsList, loadGraduationRecord,
           formatDate, fetchCloudData, deleteRecord,
           startEditDoc, cancelEditDoc, deleteDoc, submitOfficialDoc,
