@@ -670,6 +670,9 @@
 
     createApp({
       setup() {
+        // ============================================================
+        // Google Apps Script API
+        // ============================================================
         const gasApiUrl = "https://script.google.com/macros/s/AKfycbysVhecRWKW_epCzggRFa_3QUxUDnGBawEnqgA22oc85AMG5LYjITLapYNO8w2gpxs/exec";
 
         const tabs = ref([
@@ -684,6 +687,7 @@
 
         const currentTab = ref('official_doc');
         const showTagModal = ref(false);
+        const isSaving = ref(false);
 
         const tagOptions = ref({
           schoolYears: ['114學年度', '115學年度', '116學年度'],
@@ -701,6 +705,9 @@
         const selectedSemester = ref('全學年');
         const globalSettings = ref({ department: '教務處', assignee: '王老師' });
 
+        // ============================================================
+        // 表單狀態
+        // ============================================================
         const docForm = ref({ date: '', docNo: '', subject: '', description: '', driveUrl: '' });
         const isEditingDoc = ref(false);
         const editingDocIndex = ref(null);
@@ -711,6 +718,10 @@
         const editingMeetingIndex = ref(null);
         const gradeMeetingsList = ref([]);
 
+        // ============================================================
+        // 學年出題記錄
+        // 新版統一欄位：semester / subject / midtermTeacher / finalTeacher
+        // ============================================================
         const examMatrix = ref([
           { semester: '上學期', subject: '國語', midtermTeacher: '王老師', finalTeacher: '李老師' },
           { semester: '上學期', subject: '數學', midtermTeacher: '陳老師', finalTeacher: '林老師' },
@@ -720,6 +731,9 @@
         const examRecordsList = ref([]);
         const editingExamRowIndex = ref(null);
 
+        // ============================================================
+        // 工作輪流
+        // ============================================================
         const dutyItems = ref([
           {
             name: '拆車',
@@ -733,6 +747,9 @@
         const dutyRecordsList = ref([]);
         const editingDutyRowIndex = ref(null);
 
+        // ============================================================
+        // 畢業相關
+        // ============================================================
         const graduationMeetings = ref({
           graduation_trip: [{ date: '', title: '第一次畢旅籌備會議', resolution: '', driveUrl: '' }],
           graduation_album: [{ date: '', title: '畢業紀念冊廠商評選', resolution: '', driveUrl: '' }],
@@ -743,7 +760,15 @@
           graduation_album: [],
           graduation_ceremony: []
         });
+        const editingGraduationRowIndex = ref({
+          graduation_trip: null,
+          graduation_album: null,
+          graduation_ceremony: null
+        });
 
+        // ============================================================
+        // 共用工具
+        // ============================================================
         const formatDate = (dateStr) => {
           if (!dateStr) return '';
           try {
@@ -759,283 +784,575 @@
           return dateStr;
         };
 
-        const fetchCloudData = async () => {
+        const safeJsonParse = (value, fallback = []) => {
+          if (!value) return fallback;
           try {
-            const response = await fetch(`${gasApiUrl}?action=getData`);
-            const result = await response.json();
-            if (result.status === "success" && result.data) {
-              if (result.data["重要公文"]) {
-                officialDocsList.value = result.data["重要公文"].slice(1).map((row, idx) => ({ rowIndex: idx + 2, data: row })).reverse();
-              }
-              if (result.data["學年會議"]) {
-                gradeMeetingsList.value = result.data["學年會議"].slice(1).map((row, idx) => ({ rowIndex: idx + 2, data: row })).reverse();
-              }
-
-              if (result.data["學年出題記錄"]) {
-                examRecordsList.value = result.data["學年出題記錄"].slice(1).map((row, idx) => {
-                  let parsedPayload = [];
-                  try {
-                    parsedPayload = JSON.parse(row[5] || '[]');
-                  } catch (e) {}
-                  return {
-                    rowIndex: idx + 2,
-                    timestamp: formatDate(row[0]),
-                    schoolYear: row[1],
-                    semester: row[2],
-                    department: row[3],
-                    assignee: row[4],
-                    payload: parsedPayload
-                  };
-                }).reverse();
-              }
-
-              if (result.data["學年工作輪流紀錄"]) {
-                dutyRecordsList.value = result.data["學年工作輪流紀錄"].slice(1).map((row, idx) => {
-                  let parsedPayload = [];
-                  try {
-                    parsedPayload = JSON.parse(row[5] || '[]');
-                  } catch (e) {}
-                  return {
-                    rowIndex: idx + 2,
-                    timestamp: formatDate(row[0]),
-                    schoolYear: row[1],
-                    semester: row[2],
-                    department: row[3],
-                    assignee: row[4],
-                    payload: parsedPayload
-                  };
-                }).reverse();
-              }
-
-              ['畢業旅行', '畢業紀念冊', '畢業典禮'].forEach(typeName => {
-                let tabKey = typeName === '畢業旅行' ? 'graduation_trip' : typeName === '畢業紀念冊' ? 'graduation_album' : 'graduation_ceremony';
-                if (result.data[typeName]) {
-                  graduationRecordsList.value[tabKey] = result.data[typeName].slice(1).map((row, idx) => {
-                    let parsedPayload = [];
-                    try {
-                      parsedPayload = JSON.parse(row[5] || '[]');
-                    } catch (e) {}
-                    return {
-                      rowIndex: idx + 2,
-                      timestamp: formatDate(row[0]),
-                      schoolYear: row[1],
-                      semester: row[2],
-                      department: row[3],
-                      assignee: row[4],
-                      payload: parsedPayload
-                    };
-                  }).reverse();
-                }
-              });
-            }
+            const parsed = JSON.parse(value);
+            return parsed ?? fallback;
           } catch (error) {
-            console.error("讀取雲端資料失敗：", error);
+            console.error('JSON 資料格式錯誤：', value, error);
+            return fallback;
           }
         };
 
-        fetchCloudData();
+        /**
+         * 統一新舊版本的出題資料。
+         * 舊版：name / midTeacher
+         * 新版：subject / midtermTeacher
+         */
+        const normalizeExamPayload = (payload, recordSemester = '全學年') => {
+          if (!Array.isArray(payload)) return [];
 
+          return payload.map(item => {
+            const source = item || {};
+            const normalized = { ...source };
+
+            normalized.semester = source.semester || recordSemester || '全學年';
+            normalized.subject = source.subject || source.name || '';
+            normalized.midtermTeacher = source.midtermTeacher || source.midTeacher || '';
+            normalized.finalTeacher = source.finalTeacher || '';
+
+            // 統一後不再依賴舊欄位。
+            delete normalized.name;
+            delete normalized.midTeacher;
+
+            return normalized;
+          });
+        };
+
+        /**
+         * 所有 POST 都經過這裡：
+         * 1. 檢查 HTTP 狀態
+         * 2. 檢查 GAS 回傳 status
+         * 3. 統一錯誤訊息
+         */
+        const postToGas = async (data) => {
+          const response = await fetch(gasApiUrl, {
+            method: 'POST',
+            redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(data)
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const result = await response.json();
+          if (result.status !== 'success') {
+            throw new Error(result.message || 'Google Apps Script 回傳失敗');
+          }
+
+          return result;
+        };
+
+        const fetchCloudData = async () => {
+          try {
+            const response = await fetch(`${gasApiUrl}?action=getData`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const result = await response.json();
+            if (result.status !== 'success') {
+              throw new Error(result.message || '讀取資料失敗');
+            }
+
+            const data = result.data || {};
+
+            if (data['重要公文']) {
+              officialDocsList.value = data['重要公文']
+                .slice(1)
+                .map((row, idx) => ({ rowIndex: idx + 2, data: row }))
+                .reverse();
+            } else {
+              officialDocsList.value = [];
+            }
+
+            if (data['學年會議']) {
+              gradeMeetingsList.value = data['學年會議']
+                .slice(1)
+                .map((row, idx) => ({ rowIndex: idx + 2, data: row }))
+                .reverse();
+            } else {
+              gradeMeetingsList.value = [];
+            }
+
+            // --------------------------------------------------------
+            // 出題紀錄：這裡是本次修正的核心。
+            // Sheet：
+            //   row[2] = 學期
+            //   row[5] = JSON 詳細資料
+            // 舊 JSON：name / midTeacher
+            // 新 JSON：subject / midtermTeacher
+            // --------------------------------------------------------
+            if (data['學年出題記錄']) {
+              examRecordsList.value = data['學年出題記錄']
+                .slice(1)
+                .map((row, idx) => {
+                  const recordSemester = row[2] || '全學年';
+                  const parsedPayload = safeJsonParse(row[5], []);
+                  const normalizedPayload = normalizeExamPayload(parsedPayload, recordSemester);
+
+                  return {
+                    rowIndex: idx + 2,
+                    timestamp: formatDate(row[0]),
+                    schoolYear: row[1] || '',
+                    semester: recordSemester,
+                    department: row[3] || '',
+                    assignee: row[4] || '',
+                    payload: normalizedPayload
+                  };
+                })
+                .reverse();
+            } else {
+              examRecordsList.value = [];
+            }
+
+            if (data['學年工作輪流紀錄']) {
+              dutyRecordsList.value = data['學年工作輪流紀錄']
+                .slice(1)
+                .map((row, idx) => ({
+                  rowIndex: idx + 2,
+                  timestamp: formatDate(row[0]),
+                  schoolYear: row[1] || '',
+                  semester: row[2] || '全學年',
+                  department: row[3] || '',
+                  assignee: row[4] || '',
+                  payload: safeJsonParse(row[5], [])
+                }))
+                .reverse();
+            } else {
+              dutyRecordsList.value = [];
+            }
+
+            ['畢業旅行', '畢業紀念冊', '畢業典禮'].forEach(typeName => {
+              const tabKey = typeName === '畢業旅行'
+                ? 'graduation_trip'
+                : typeName === '畢業紀念冊'
+                  ? 'graduation_album'
+                  : 'graduation_ceremony';
+
+              if (data[typeName]) {
+                graduationRecordsList.value[tabKey] = data[typeName]
+                  .slice(1)
+                  .map((row, idx) => ({
+                    rowIndex: idx + 2,
+                    timestamp: formatDate(row[0]),
+                    schoolYear: row[1] || '',
+                    semester: row[2] || '全學年',
+                    department: row[3] || '',
+                    assignee: row[4] || '',
+                    payload: safeJsonParse(row[5], [])
+                  }))
+                  .reverse();
+              } else {
+                graduationRecordsList.value[tabKey] = [];
+              }
+            });
+          } catch (error) {
+            console.error('讀取雲端資料失敗：', error);
+            alert(`❌ 讀取雲端資料失敗：${error.message || error}`);
+          }
+        };
+
+        // ============================================================
+        // 歷史紀錄載入 / 編輯
+        // ============================================================
         const loadExamRecord = (item) => {
           editingExamRowIndex.value = item.rowIndex;
           selectedSchoolYear.value = item.schoolYear;
           selectedSemester.value = item.semester;
-          examMatrix.value = item.payload;
+          examMatrix.value = normalizeExamPayload(item.payload, item.semester);
           window.scrollTo({ top: 0, behavior: 'smooth' });
-          alert(`✅ 已載入 [${item.schoolYear} - ${item.semester}] 出題紀錄進行編輯，儲存時將直接覆蓋原紀錄！`);
+          alert(`✅ 已載入 [${item.schoolYear} - ${item.semester}] 出題紀錄。儲存時會直接覆蓋原紀錄。`);
         };
 
         const cancelEditExam = () => {
           editingExamRowIndex.value = null;
-          alert("已取消編輯模式。");
+          alert('已取消出題紀錄編輯模式。');
         };
 
         const loadDutyRecord = (item) => {
           editingDutyRowIndex.value = item.rowIndex;
           selectedSchoolYear.value = item.schoolYear;
           selectedSemester.value = item.semester;
-          dutyItems.value = item.payload;
+          dutyItems.value = Array.isArray(item.payload) ? item.payload : [];
           window.scrollTo({ top: 0, behavior: 'smooth' });
-          alert(`✅ 已載入 [${item.schoolYear} - ${item.semester}] 工作輪流紀錄進行編輯，儲存時將直接覆蓋原紀錄！`);
+          alert(`✅ 已載入 [${item.schoolYear} - ${item.semester}] 工作輪流紀錄。儲存時會直接覆蓋原紀錄。`);
         };
 
         const cancelEditDuty = () => {
           editingDutyRowIndex.value = null;
-          alert("已取消編輯模式。");
+          alert('已取消工作輪流紀錄編輯模式。');
         };
 
         const getGraduationRecordsList = (type) => graduationRecordsList.value[type] || [];
 
         const loadGraduationRecord = (type, item) => {
+          editingGraduationRowIndex.value[type] = item.rowIndex;
           selectedSchoolYear.value = item.schoolYear;
           selectedSemester.value = item.semester;
-          graduationMeetings.value[type] = item.payload;
-          alert(`✅ 已成功載入 [${item.schoolYear} - ${item.semester}] 的會議紀錄！`);
+          graduationMeetings.value[type] = Array.isArray(item.payload) ? item.payload : [];
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          alert(`✅ 已載入 [${item.schoolYear} - ${item.semester}] 的會議紀錄。儲存時會直接覆蓋原紀錄。`);
         };
 
+        // ============================================================
+        // 通用刪除
+        // ============================================================
         const deleteRecord = async (sheetName, rowIndex) => {
-          if (!confirm("確定要刪除這筆歷史紀錄嗎？")) return;
+          if (!confirm('確定要刪除這筆歷史紀錄嗎？')) return;
+
           try {
-            const response = await fetch(gasApiUrl, {
-              method: "POST",
-              redirect: "follow",
-              headers: { "Content-Type": "text/plain;charset=utf-8" },
-              body: JSON.stringify({ formType: "刪除紀錄", targetSheetName: sheetName, rowIndex: rowIndex })
+            await postToGas({
+              formType: '刪除紀錄',
+              targetSheetName: sheetName,
+              rowIndex: rowIndex
             });
-            const result = await response.json();
-            if (result.status === "success") {
-              alert("✅ 刪除成功！");
-              fetchCloudData();
-            } else {
-              alert("❌ 刪除失敗：" + (result.message || ""));
-            }
+
+            alert('✅ 刪除成功！');
+            await fetchCloudData();
           } catch (error) {
-            alert("❌ 網路異常，刪除失敗。");
+            alert(`❌ 刪除失敗：${error.message || error}`);
           }
         };
 
+        // ============================================================
+        // 公文
+        // ============================================================
         const startEditDoc = (item) => {
           isEditingDoc.value = true;
           editingDocIndex.value = item.rowIndex;
           selectedSchoolYear.value = item.data[1] || '114學年度';
           globalSettings.value.department = item.data[2] || '教務處';
           globalSettings.value.assignee = item.data[3] || '王老師';
-          docForm.value = { date: formatDate(item.data[4]), docNo: item.data[5] || '', subject: item.data[6] || '', description: item.data[7] || '', driveUrl: item.data[8] || '' };
+          docForm.value = {
+            date: formatDate(item.data[4]),
+            docNo: item.data[5] || '',
+            subject: item.data[6] || '',
+            description: item.data[7] || '',
+            driveUrl: item.data[8] || ''
+          };
           window.scrollTo({ top: 0, behavior: 'smooth' });
         };
-        const cancelEditDoc = () => { isEditingDoc.value = false; editingDocIndex.value = null; docForm.value = { date: '', docNo: '', subject: '', description: '', driveUrl: '' }; };
-        
+
+        const cancelEditDoc = () => {
+          isEditingDoc.value = false;
+          editingDocIndex.value = null;
+          docForm.value = { date: '', docNo: '', subject: '', description: '', driveUrl: '' };
+        };
+
         const deleteDoc = async (item) => {
           if (!confirm(`確定要刪除主旨為「${item.data[6]}」的公文紀錄嗎？`)) return;
-          const res = await (await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ formType: "刪除公文", rowIndex: item.rowIndex }) })).json();
-          if (res.status === "success") { alert("✅ 刪除成功！"); fetchCloudData(); } else { alert("❌ 刪除失敗"); }
+
+          try {
+            await postToGas({ formType: '刪除公文', rowIndex: item.rowIndex });
+            alert('✅ 刪除成功！');
+            await fetchCloudData();
+          } catch (error) {
+            alert(`❌ 刪除失敗：${error.message || error}`);
+          }
         };
 
         const submitOfficialDoc = async () => {
-          const finalData = { formType: isEditingDoc.value ? "修改公文" : "重要公文", rowIndex: editingDocIndex.value, schoolYear: selectedSchoolYear.value, ...globalSettings.value, ...docForm.value };
-          const res = await (await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(finalData) })).json();
-          if (res.status === "success") { alert("✅ 儲存成功！"); cancelEditDoc(); fetchCloudData(); } else { alert("❌ 儲存失敗"); }
+          try {
+            await postToGas({
+              formType: isEditingDoc.value ? '修改公文' : '重要公文',
+              rowIndex: editingDocIndex.value,
+              schoolYear: selectedSchoolYear.value,
+              ...globalSettings.value,
+              ...docForm.value
+            });
+
+            alert('✅ 公文紀錄儲存成功！');
+            cancelEditDoc();
+            await fetchCloudData();
+          } catch (error) {
+            alert(`❌ 公文儲存失敗：${error.message || error}`);
+          }
         };
 
+        // ============================================================
+        // 學年會議
+        // ============================================================
         const startEditMeeting = (item) => {
           isEditingMeeting.value = true;
           editingMeetingIndex.value = item.rowIndex;
           selectedSchoolYear.value = item.data[1] || '114學年度';
           globalSettings.value.department = item.data[2] || '教務處';
           globalSettings.value.assignee = item.data[3] || '王老師';
-          meetingForm.value = { date: formatDate(item.data[4]), status: item.data[5] || 'yellow', subject: item.data[6] || '', description: item.data[7] || '', reply: item.data[8] || '', driveUrl: item.data[9] || '' };
+          meetingForm.value = {
+            date: formatDate(item.data[4]),
+            status: item.data[5] || 'yellow',
+            subject: item.data[6] || '',
+            description: item.data[7] || '',
+            reply: item.data[8] || '',
+            driveUrl: item.data[9] || ''
+          };
           window.scrollTo({ top: 0, behavior: 'smooth' });
         };
-        const cancelEditMeeting = () => { isEditingMeeting.value = false; editingMeetingIndex.value = null; meetingForm.value = { date: '', subject: '', description: '', reply: '', driveUrl: '', status: 'yellow' }; };
-        
+
+        const cancelEditMeeting = () => {
+          isEditingMeeting.value = false;
+          editingMeetingIndex.value = null;
+          meetingForm.value = { date: '', subject: '', description: '', reply: '', driveUrl: '', status: 'yellow' };
+        };
+
         const deleteMeeting = async (item) => {
           if (!confirm(`確定要刪除主旨為「${item.data[6]}」的會議提案嗎？`)) return;
-          const res = await (await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ formType: "刪除會議", rowIndex: item.rowIndex }) })).json();
-          if (res.status === "success") { alert("✅ 刪除成功！"); fetchCloudData(); } else { alert("❌ 刪除失敗"); }
+
+          try {
+            await postToGas({ formType: '刪除會議', rowIndex: item.rowIndex });
+            alert('✅ 刪除成功！');
+            await fetchCloudData();
+          } catch (error) {
+            alert(`❌ 刪除失敗：${error.message || error}`);
+          }
         };
 
         const submitMeeting = async () => {
-          const finalData = { formType: isEditingMeeting.value ? "修改會議" : "學年會議", rowIndex: editingMeetingIndex.value, schoolYear: selectedSchoolYear.value, ...globalSettings.value, ...meetingForm.value };
-          const res = await (await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(finalData) })).json();
-          if (res.status === "success") { alert("✅ 儲存成功！"); cancelEditMeeting(); fetchCloudData(); } else { alert("❌ 儲存失敗"); }
-        };
-
-        const submitExamMatrix = async () => {
-          const isUpdating = !!editingExamRowIndex.value;
-          const finalData = {
-            formType: isUpdating ? "修改紀錄" : "學年出題記錄",
-            targetSheetName: "學年出題記錄",
-            rowIndex: editingExamRowIndex.value,
-            schoolYear: selectedSchoolYear.value,
-            semester: selectedSemester.value,
-            ...globalSettings.value,
-            payload: examMatrix.value
-          };
           try {
-            const res = await (await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(finalData) })).json();
-            if (res.status === "success") {
-              alert(`✅ [${selectedSchoolYear.value} - ${selectedSemester.value}] 出題分工表已成功${isUpdating ? '更新覆蓋' : '儲存'}！`);
-              editingExamRowIndex.value = null;
-              fetchCloudData();
-            } else {
-              alert("❌ 儲存失敗");
-            }
-          } catch (e) {
-            alert("❌ 網路異常");
+            await postToGas({
+              formType: isEditingMeeting.value ? '修改會議' : '學年會議',
+              rowIndex: editingMeetingIndex.value,
+              schoolYear: selectedSchoolYear.value,
+              ...globalSettings.value,
+              ...meetingForm.value
+            });
+
+            alert('✅ 學年會議紀錄儲存成功！');
+            cancelEditMeeting();
+            await fetchCloudData();
+          } catch (error) {
+            alert(`❌ 會議儲存失敗：${error.message || error}`);
           }
         };
 
+        // ============================================================
+        // 學年出題記錄
+        // ============================================================
+        const submitExamMatrix = async () => {
+          const isUpdating = !!editingExamRowIndex.value;
+          const canonicalPayload = normalizeExamPayload(examMatrix.value, selectedSemester.value);
+
+          if (!canonicalPayload.length) {
+            alert('❌ 沒有可儲存的出題資料。');
+            return;
+          }
+
+          try {
+            await postToGas({
+              formType: isUpdating ? '修改紀錄' : '學年出題記錄',
+              targetSheetName: '學年出題記錄',
+              rowIndex: editingExamRowIndex.value,
+              schoolYear: selectedSchoolYear.value,
+              semester: selectedSemester.value,
+              ...globalSettings.value,
+              payload: canonicalPayload
+            });
+
+            examMatrix.value = canonicalPayload;
+            alert(`✅ [${selectedSchoolYear.value} - ${selectedSemester.value}] 出題分工表已成功${isUpdating ? '更新覆蓋' : '儲存'}！`);
+            editingExamRowIndex.value = null;
+            await fetchCloudData();
+          } catch (error) {
+            alert(`❌ 出題分工表儲存失敗：${error.message || error}`);
+          }
+        };
+
+        // ============================================================
+        // 工作輪流
+        // ============================================================
         const addDutyItem = () => {
-          if (!newDutyItemInput.value.trim()) return;
-          dutyItems.value.push({ name: newDutyItemInput.value.trim(), periods: [{ timeSlot: '全學年', assignee: tagOptions.value.dutyMembers[0] }] });
+          const name = newDutyItemInput.value.trim();
+          if (!name) return;
+
+          dutyItems.value.push({
+            name: name,
+            periods: [{
+              timeSlot: '全學年',
+              assignee: tagOptions.value.dutyMembers[0] || ''
+            }]
+          });
+
           newDutyItemInput.value = '';
         };
+
         const removeDutyItem = (i) => dutyItems.value.splice(i, 1);
-        const addPeriod = (i) => dutyItems.value[i].periods.push({ timeSlot: '', assignee: tagOptions.value.dutyMembers[0] });
-        const removePeriod = (i, pi) => dutyItems.value[i].periods.splice(pi, 1);
+
+        const addPeriod = (i) => {
+          if (!dutyItems.value[i]) return;
+          dutyItems.value[i].periods.push({
+            timeSlot: '',
+            assignee: tagOptions.value.dutyMembers[0] || ''
+          });
+        };
+
+        const removePeriod = (i, pi) => {
+          if (!dutyItems.value[i]) return;
+          dutyItems.value[i].periods.splice(pi, 1);
+        };
 
         const submitDutyRoster = async () => {
           const isUpdating = !!editingDutyRowIndex.value;
-          const finalData = {
-            formType: isUpdating ? "修改紀錄" : "學年工作輪流紀錄",
-            targetSheetName: "學年工作輪流紀錄",
-            rowIndex: editingDutyRowIndex.value,
-            schoolYear: selectedSchoolYear.value,
-            semester: selectedSemester.value,
-            ...globalSettings.value,
-            payload: dutyItems.value
-          };
+
           try {
-            const res = await (await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(finalData) })).json();
-            if (res.status === "success") {
-              alert(`✅ [${selectedSchoolYear.value} - ${selectedSemester.value}] 工作輪流表已成功${isUpdating ? '更新覆蓋' : '儲存'}！`);
-              editingDutyRowIndex.value = null;
-              fetchCloudData();
-            } else {
-              alert("❌ 儲存失敗");
-            }
-          } catch (e) {
-            alert("❌ 網路異常");
+            await postToGas({
+              formType: isUpdating ? '修改紀錄' : '學年工作輪流紀錄',
+              targetSheetName: '學年工作輪流紀錄',
+              rowIndex: editingDutyRowIndex.value,
+              schoolYear: selectedSchoolYear.value,
+              semester: selectedSemester.value,
+              ...globalSettings.value,
+              payload: dutyItems.value
+            });
+
+            alert(`✅ [${selectedSchoolYear.value} - ${selectedSemester.value}] 工作輪流表已成功${isUpdating ? '更新覆蓋' : '儲存'}！`);
+            editingDutyRowIndex.value = null;
+            await fetchCloudData();
+          } catch (error) {
+            alert(`❌ 工作輪流表儲存失敗：${error.message || error}`);
           }
         };
 
-        const addGraduationMeeting = (type) => graduationMeetings.value[type].push({ date: '', title: '', resolution: '', driveUrl: '' });
-        const removeGraduationMeeting = (type, i) => graduationMeetings.value[type].splice(i, 1);
-
-        const submitGraduationData = async (type) => {
-          const typeName = tabs.value.find(t => t.id === type).name;
-          const finalData = { formType: typeName, schoolYear: selectedSchoolYear.value, semester: selectedSemester.value, ...globalSettings.value, payload: graduationMeetings.value[type] };
-          const res = await (await fetch(gasApiUrl, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(finalData) })).json();
-          if (res.status === "success") { alert(`✅ [${selectedSchoolYear.value} - ${selectedSemester.value}] ${typeName} 紀錄已成功儲存！`); fetchCloudData(); } else { alert("❌ 儲存失敗"); }
+        // ============================================================
+        // 畢業旅行 / 畢業紀念冊 / 畢業典禮
+        // ============================================================
+        const addGraduationMeeting = (type) => {
+          graduationMeetings.value[type].push({
+            date: '',
+            title: '',
+            resolution: '',
+            driveUrl: ''
+          });
         };
 
+        const removeGraduationMeeting = (type, i) => {
+          graduationMeetings.value[type].splice(i, 1);
+        };
+
+        const submitGraduationData = async (type) => {
+          const tab = tabs.value.find(t => t.id === type);
+          if (!tab) return;
+
+          const typeName = tab.name;
+          const rowIndex = editingGraduationRowIndex.value[type];
+          const isUpdating = !!rowIndex;
+
+          try {
+            await postToGas({
+              formType: isUpdating ? '修改紀錄' : typeName,
+              targetSheetName: typeName,
+              rowIndex: rowIndex,
+              schoolYear: selectedSchoolYear.value,
+              semester: selectedSemester.value,
+              ...globalSettings.value,
+              payload: graduationMeetings.value[type]
+            });
+
+            alert(`✅ [${selectedSchoolYear.value} - ${selectedSemester.value}] ${typeName}紀錄已成功${isUpdating ? '更新覆蓋' : '儲存'}！`);
+            editingGraduationRowIndex.value[type] = null;
+            await fetchCloudData();
+          } catch (error) {
+            alert(`❌ ${typeName}儲存失敗：${error.message || error}`);
+          }
+        };
+
+        // ============================================================
+        // 標籤管理
+        // ============================================================
         const newSchoolYearInput = ref('');
         const newAssigneeInput = ref('');
         const newTeacherInput = ref('');
         const newDutyMemberInput = ref('');
 
-        const addTag = (cat, val) => { 
-          if (val && val.trim() && !tagOptions.value[cat].includes(val.trim())) {
-            tagOptions.value[cat].push(val.trim()); 
+        const addTag = (cat, val) => {
+          const value = String(val || '').trim();
+          if (!value) return;
+
+          if (!tagOptions.value[cat].includes(value)) {
+            tagOptions.value[cat].push(value);
           }
         };
+
         const removeTag = (cat, idx) => {
-          if (tagOptions.value[cat].length <= 1) { alert('至少必須保留一個標籤選項！'); return; }
+          if (tagOptions.value[cat].length <= 1) {
+            alert('至少必須保留一個標籤選項！');
+            return;
+          }
           tagOptions.value[cat].splice(idx, 1);
         };
 
+        // 初始讀取雲端資料。
+        fetchCloudData();
+
         return {
-          tabs, currentTab, showTagModal, tagOptions, selectedSchoolYear, selectedSemester, globalSettings,
-          docForm, isEditingDoc, officialDocsList,
-          meetingForm, isEditingMeeting, gradeMeetingsList,
-          examMatrix, examRecordsList, loadExamRecord, editingExamRowIndex, cancelEditExam,
-          dutyItems, newDutyItemInput, dutyRecordsList, loadDutyRecord, editingDutyRowIndex, cancelEditDuty,
-          graduationMeetings, graduationRecordsList, getGraduationRecordsList, loadGraduationRecord,
-          formatDate, fetchCloudData, deleteRecord,
-          startEditDoc, cancelEditDoc, deleteDoc, submitOfficialDoc,
-          startEditMeeting, cancelEditMeeting, deleteMeeting, submitMeeting,
-          submitExamMatrix, addDutyItem, removeDutyItem, addPeriod, removePeriod, submitDutyRoster,
-          addGraduationMeeting, removeGraduationMeeting, submitGraduationData,
-          newSchoolYearInput, newAssigneeInput, newTeacherInput, newDutyMemberInput, addTag, removeTag
+          tabs,
+          currentTab,
+          showTagModal,
+          isSaving,
+          tagOptions,
+          selectedSchoolYear,
+          selectedSemester,
+          globalSettings,
+
+          docForm,
+          isEditingDoc,
+          officialDocsList,
+
+          meetingForm,
+          isEditingMeeting,
+          gradeMeetingsList,
+
+          examMatrix,
+          examRecordsList,
+          loadExamRecord,
+          editingExamRowIndex,
+          cancelEditExam,
+
+          dutyItems,
+          newDutyItemInput,
+          dutyRecordsList,
+          loadDutyRecord,
+          editingDutyRowIndex,
+          cancelEditDuty,
+
+          graduationMeetings,
+          graduationRecordsList,
+          getGraduationRecordsList,
+          loadGraduationRecord,
+          editingGraduationRowIndex,
+
+          formatDate,
+          fetchCloudData,
+          deleteRecord,
+
+          startEditDoc,
+          cancelEditDoc,
+          deleteDoc,
+          submitOfficialDoc,
+
+          startEditMeeting,
+          cancelEditMeeting,
+          deleteMeeting,
+          submitMeeting,
+
+          submitExamMatrix,
+          addDutyItem,
+          removeDutyItem,
+          addPeriod,
+          removePeriod,
+          submitDutyRoster,
+
+          addGraduationMeeting,
+          removeGraduationMeeting,
+          submitGraduationData,
+
+          newSchoolYearInput,
+          newAssigneeInput,
+          newTeacherInput,
+          newDutyMemberInput,
+          addTag,
+          removeTag
         };
       }
     }).mount('#app');
